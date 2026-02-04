@@ -1,3 +1,8 @@
+
+
+
+
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -84,10 +89,10 @@
             });
 
             data.forEach(row => {
-                if (!row.Farmacia) return;
+                if (!row.FARMACIA) return;
 
                 let statusClass = 'bg-gray-50 text-gray-600 border border-gray-200';
-                const est = row.Estado ? row.Estado.toLowerCase() : 'pendiente';
+                const est = row.ESTADO ? row.ESTADO.toLowerCase() : 'pendiente';
                 
                 if (est.includes('pendiente')) statusClass = 'status-pendiente';
                 else if (est.includes('respondido')) statusClass = 'status-respondido';
@@ -98,21 +103,21 @@
                 tr.className = "hover:bg-gray-50 transition-colors duration-150";
                 tr.innerHTML = `
                     <td class="px-6 py-4">
-                        <div class="font-bold text-gray-800">${row.Farmacia}</div>
-                        <div class="text-xs text-teal-600 font-mono mt-1">${row.Email}</div>
+                        <div class="font-bold text-gray-800">${row.FARMACIA}</div>
+                        <div class="text-xs text-teal-600 font-mono mt-1">${row.EMAIL}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600">
-                            ${row.Localidad}
+                            ${row.LOCALIDAD}
                         </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full shadow-sm ${statusClass}">
-                            ${row.Estado || 'Pendiente'}
+                            ${row.ESTADO || 'Pendiente'}
                         </span>
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-500 italic">
-                        ${row.Notas || ''}
+                        ${row.NOTAS || ''}
                     </td>
                 `;
                 tbody.appendChild(tr);
