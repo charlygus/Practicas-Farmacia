@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seguimiento Prácticas Farmacia 💊</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
         /* SEMÁFORO DE ESTADOS */
         .badge { @apply px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full shadow-sm border; }
@@ -17,6 +16,13 @@
         
         body { background-color: #f8fafc; }
         .row-rechazado { @apply bg-gray-50 opacity-60 grayscale; } /* Efecto visual para toda la fila */
+        
+        /* Animación de carga */
+        .loading-spinner {
+            border: 4px solid #f3f3f3; border-top: 4px solid #0d9488; border-radius: 50%;
+            width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="text-gray-800 font-sans antialiased">
@@ -25,20 +31,20 @@
         <header class="mb-6 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
             <div>
                 <h1 class="text-3xl font-extrabold text-teal-700 tracking-tight">💊 Mis Prácticas</h1>
-                <p class="text-gray-400 mt-1 text-sm">Panel de control de candidaturas</p>
+                <p class="text-gray-400 mt-1 text-sm">Panel de control en tiempo real (JSON API)</p>
             </div>
             
             <div class="mt-4 md:mt-0 flex gap-4 text-center">
-                <div class="bg-yellow-50 p-2 rounded-lg border border-yellow-100">
-                    <span id="count-pendiente" class="block text-xl font-bold text-yellow-700">0</span>
+                <div class="bg-yellow-50 p-2 rounded-lg border border-yellow-100 min-w-[80px]">
+                    <span id="count-pendiente" class="block text-xl font-bold text-yellow-700">-</span>
                     <span class="text-xs text-yellow-600 uppercase">Pendientes</span>
                 </div>
-                <div class="bg-green-50 p-2 rounded-lg border border-green-100">
-                    <span id="count-exito" class="block text-xl font-bold text-green-700">0</span>
+                <div class="bg-green-50 p-2 rounded-lg border border-green-100 min-w-[80px]">
+                    <span id="count-exito" class="block text-xl font-bold text-green-700">-</span>
                     <span class="text-xs text-green-600 uppercase">Activos</span>
                 </div>
-                <div class="bg-red-50 p-2 rounded-lg border border-red-100">
-                    <span id="count-rechazado" class="block text-xl font-bold text-red-700">0</span>
+                <div class="bg-red-50 p-2 rounded-lg border border-red-100 min-w-[80px]">
+                    <span id="count-rechazado" class="block text-xl font-bold text-red-700">-</span>
                     <span class="text-xs text-red-600 uppercase">Rechazados</span>
                 </div>
             </div>
@@ -49,13 +55,13 @@
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3">
                     <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </span>
-                <input type="text" id="buscador" placeholder="🔍 Buscar farmacia, pueblo, estado..." 
-                       class="w-full pl-10 p-4 border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                <input type="text" id="buscador" placeholder="🔍 Buscar farmacia, localidad, estado..." 
+                       class="w-full pl-10 p-4 border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white transition-shadow">
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-            <div class="overflow-x-auto">
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 min-h-[300px]">
+            <div id="loader" class="loading-spinner"></div> <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-100">
                     <thead class="bg-gray-50">
                         <tr>
@@ -65,58 +71,70 @@
                             <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Notas</th>
                         </tr>
                     </thead>
-                    <tbody id="lista-farmacias" class="divide-y divide-gray-100">
+                    <tbody id="lista-farmacias" class="divide-y divide-gray-100 hidden">
                         </tbody>
                 </table>
+            </div>
+            <div id="error-msg" class="hidden p-8 text-center text-red-500">
+                ⚠️ No se han podido cargar los datos. Revisa la consola (F12).
             </div>
         </div>
         
         <footer class="mt-8 text-center text-xs text-gray-400 pb-8">
-            <p>💡 Si actualizas el Sheet, espera 5 min y recarga esta página.</p>
+            <p>⚡ Sincronización instantánea vía Google Apps Script</p>
         </footer>
     </div>
 
     <script>
-        // TU ENLACE CONFIGURADO
-        const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTHMTvkxxKH3An0VqizcHI2qYCcBfzLKyLjrhs7klbR_UyrTmy4f5M2aJurg9Vutb5VjEPLJxZEdX-r/pub?output=csv';
+        // TU URL DE APPS SCRIPT
+        const apiUrl = 'https://script.google.com/macros/s/AKfycbz96ggVZhkjS_ZxeqG_wb4qci60OF47-pPLUw5K6J3BJj2aR5KPRDEemjNh9HksjQYJog/exec';
 
-        function init() {
-            // Truco anti-caché: Añadimos un número aleatorio al final de la URL
-            const urlConTruco = sheetUrl + '&cache_buster=' + new Date().getTime();
+        async function init() {
+            try {
+                // Hacemos la petición fetch
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) throw new Error('Error en la red');
+                
+                const data = await response.json();
+                
+                // Ocultamos loader y mostramos tabla
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('lista-farmacias').classList.remove('hidden');
 
-            Papa.parse(urlConTruco, {
-                download: true,
-                header: true,
-                skipEmptyLines: true,
-                complete: function(results) {
-                    renderTable(results.data);
-                    updateCounters(results.data);
-                },
-                error: function(err) {
-                    console.error("Error:", err);
-                    document.getElementById('lista-farmacias').innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-400">Error cargando datos.</td></tr>`;
-                }
-            });
+                // Depuración por si las columnas no coinciden
+                if(data.length > 0) console.log("Columnas recibidas:", Object.keys(data[0]));
+
+                renderTable(data);
+                updateCounters(data);
+
+            } catch (error) {
+                console.error("❌ Error cargando datos:", error);
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('error-msg').classList.remove('hidden');
+                document.getElementById('error-msg').innerText = "Error: " + error.message;
+            }
         }
 
         function renderTable(data) {
             const tbody = document.getElementById('lista-farmacias');
             tbody.innerHTML = '';
 
-            // Ordenar: Exitos primero, Pendientes despues, Rechazados al final
+            // Ordenar: Exitos(3) -> Respondidos(2) -> Pendientes(1) -> Rechazados(0)
             data.sort((a, b) => {
                 const getScore = (estado) => {
                     const e = (estado || '').toLowerCase();
-                    if (e.includes('entrevista') || e.includes('si') || e.includes('acept')) return 3; // Top
+                    if (e.includes('entrevista') || e.includes('si') || e.includes('acept') || e.includes('ok')) return 3;
                     if (e.includes('respondido')) return 2;
-                    if (e.includes('pendiente')) return 1;
-                    if (e.includes('no') || e.includes('rechaz')) return 0; // Al fondo
+                    if (e.includes('pendiente') || e === '') return 1;
+                    if (e.includes('no') || e.includes('rechaz') || e.includes('cerrado')) return 0;
                     return 1;
                 };
                 return getScore(b.ESTADO) - getScore(a.ESTADO);
             });
 
             data.forEach(row => {
+                // Verificamos que tenga nombre de farmacia para no pintar filas vacías
                 if (!row.FARMACIA) return;
 
                 // Lógica del Semáforo
@@ -125,7 +143,7 @@
                 let rowClass = '';
                 let icon = '⏳';
 
-                if (est.includes('pendiente')) {
+                if (est.includes('pendiente') || est === '') {
                     statusClass = 'status-pendiente';
                     icon = '⏳';
                 }
@@ -139,14 +157,15 @@
                 }
                 else if (est.includes('no') || est.includes('rechaz') || est.includes('cerrado') || est.includes('denegado')) {
                     statusClass = 'status-rechazado';
-                    rowClass = 'row-rechazado'; // Apaga toda la fila
+                    rowClass = 'row-rechazado'; 
                     icon = '❌';
                 }
 
-                // Enlaces
+                // Enlaces dinámicos
                 const mailSubject = encodeURIComponent("Candidatura Prácticas - [Tu Nombre]");
                 const mailBody = encodeURIComponent("Buenos días, \n\nQuería consultar el estado de mi candidatura...\n\nUn saludo.");
                 const linkMail = `mailto:${row.EMAIL}?subject=${mailSubject}&body=${mailBody}`;
+                // Mapa: busca "Farmacia X + Localidad"
                 const linkMaps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(row.FARMACIA + ' ' + row.LOCALIDAD)}`;
 
                 const tr = document.createElement('tr');
@@ -165,7 +184,7 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
-                            ${row.LOCALIDAD}
+                            ${row.LOCALIDAD || '-'}
                         </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -174,7 +193,7 @@
                         </span>
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-500 italic max-w-xs truncate">
-                        ${row.NOTAS || '-'}
+                        ${row.NOTAS || ''}
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -187,19 +206,13 @@
                 if(!row.FARMACIA) return;
                 const st = (row.ESTADO || '').toLowerCase();
                 if(st.includes('rechaz') || st.includes('no') || st.includes('cerrado')) r++;
-                else if(st.includes('entrevista') || st.includes('si') || st.includes('acept')) e++;
-                else p++;
+                else if(st.includes('entrevista') || st.includes('si') || st.includes('acept') || st.includes('ok')) e++;
+                else p++; // Todo lo que no sea éxito o rechazo es pendiente
             });
             
-            animateValue("count-pendiente", p);
-            animateValue("count-exito", e);
-            animateValue("count-rechazado", r);
-        }
-
-        // Efecto visual contador
-        function animateValue(id, end) {
-            const obj = document.getElementById(id);
-            obj.innerText = end;
+            document.getElementById("count-pendiente").innerText = p;
+            document.getElementById("count-exito").innerText = e;
+            document.getElementById("count-rechazado").innerText = r;
         }
 
         // Buscador
@@ -212,6 +225,7 @@
             });
         });
 
+        // Arrancar
         init();
     </script>
 </body>
