@@ -15,12 +15,12 @@
         .status-rechazado { @apply bg-red-50 text-red-600 border-red-100 line-through opacity-75; }
         
         body { background-color: #f8fafc; }
-        .row-rechazado { @apply bg-gray-50 opacity-60 grayscale; } /* Efecto visual para toda la fila */
+        .row-rechazado { @apply bg-gray-50 opacity-60 grayscale; } 
         
-        /* Animación de carga */
+        /* Spinner de carga */
         .loading-spinner {
-            border: 4px solid #f3f3f3; border-top: 4px solid #0d9488; border-radius: 50%;
-            width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto;
+            border: 4px solid #e2e8f0; border-top: 4px solid #0d9488; border-radius: 50%;
+            width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 40px auto;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -31,7 +31,7 @@
         <header class="mb-6 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
             <div>
                 <h1 class="text-3xl font-extrabold text-teal-700 tracking-tight">💊 Mis Prácticas</h1>
-                <p class="text-gray-400 mt-1 text-sm">Panel de control en tiempo real (JSON API)</p>
+                <p class="text-gray-400 mt-1 text-sm">Panel de control en tiempo real</p>
             </div>
             
             <div class="mt-4 md:mt-0 flex gap-4 text-center">
@@ -61,7 +61,8 @@
         </div>
 
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 min-h-[300px]">
-            <div id="loader" class="loading-spinner"></div> <div class="overflow-x-auto">
+            <div id="loader" class="loading-spinner"></div>
+            <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-100">
                     <thead class="bg-gray-50">
                         <tr>
@@ -75,44 +76,40 @@
                         </tbody>
                 </table>
             </div>
-            <div id="error-msg" class="hidden p-8 text-center text-red-500">
-                ⚠️ No se han podido cargar los datos. Revisa la consola (F12).
-            </div>
+            <div id="error-msg" class="hidden p-8 text-center text-red-500 font-medium"></div>
         </div>
         
         <footer class="mt-8 text-center text-xs text-gray-400 pb-8">
-            <p>⚡ Sincronización instantánea vía Google Apps Script</p>
+            <p>⚡ Sincronización instantánea activada</p>
         </footer>
     </div>
 
     <script>
-        // TU URL DE APPS SCRIPT
+        // TU URL CONFIGURADA
         const apiUrl = 'https://script.google.com/macros/s/AKfycbz96ggVZhkjS_ZxeqG_wb4qci60OF47-pPLUw5K6J3BJj2aR5KPRDEemjNh9HksjQYJog/exec';
 
         async function init() {
             try {
-                // Hacemos la petición fetch
-                const response = await fetch(apiUrl);
+                // TRUCO ANTI-CACHÉ: Añadimos '?nocache=' y la hora actual
+                const uniqueUrl = apiUrl + '?nocache=' + new Date().getTime();
                 
-                if (!response.ok) throw new Error('Error en la red');
+                const response = await fetch(uniqueUrl);
+                
+                if (!response.ok) throw new Error('Error de conexión con Google');
                 
                 const data = await response.json();
                 
-                // Ocultamos loader y mostramos tabla
                 document.getElementById('loader').style.display = 'none';
                 document.getElementById('lista-farmacias').classList.remove('hidden');
-
-                // Depuración por si las columnas no coinciden
-                if(data.length > 0) console.log("Columnas recibidas:", Object.keys(data[0]));
 
                 renderTable(data);
                 updateCounters(data);
 
             } catch (error) {
-                console.error("❌ Error cargando datos:", error);
+                console.error("Error:", error);
                 document.getElementById('loader').style.display = 'none';
                 document.getElementById('error-msg').classList.remove('hidden');
-                document.getElementById('error-msg').innerText = "Error: " + error.message;
+                document.getElementById('error-msg').innerText = "⚠️ Error cargando datos: " + error.message;
             }
         }
 
@@ -120,7 +117,7 @@
             const tbody = document.getElementById('lista-farmacias');
             tbody.innerHTML = '';
 
-            // Ordenar: Exitos(3) -> Respondidos(2) -> Pendientes(1) -> Rechazados(0)
+            // Ordenar datos
             data.sort((a, b) => {
                 const getScore = (estado) => {
                     const e = (estado || '').toLowerCase();
@@ -134,10 +131,8 @@
             });
 
             data.forEach(row => {
-                // Verificamos que tenga nombre de farmacia para no pintar filas vacías
                 if (!row.FARMACIA) return;
 
-                // Lógica del Semáforo
                 const est = row.ESTADO ? row.ESTADO.toLowerCase() : 'pendiente';
                 let statusClass = 'status-pendiente';
                 let rowClass = '';
@@ -161,11 +156,10 @@
                     icon = '❌';
                 }
 
-                // Enlaces dinámicos
+                // Enlaces
                 const mailSubject = encodeURIComponent("Candidatura Prácticas - [Tu Nombre]");
                 const mailBody = encodeURIComponent("Buenos días, \n\nQuería consultar el estado de mi candidatura...\n\nUn saludo.");
                 const linkMail = `mailto:${row.EMAIL}?subject=${mailSubject}&body=${mailBody}`;
-                // Mapa: busca "Farmacia X + Localidad"
                 const linkMaps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(row.FARMACIA + ' ' + row.LOCALIDAD)}`;
 
                 const tr = document.createElement('tr');
@@ -207,25 +201,20 @@
                 const st = (row.ESTADO || '').toLowerCase();
                 if(st.includes('rechaz') || st.includes('no') || st.includes('cerrado')) r++;
                 else if(st.includes('entrevista') || st.includes('si') || st.includes('acept') || st.includes('ok')) e++;
-                else p++; // Todo lo que no sea éxito o rechazo es pendiente
+                else p++;
             });
-            
             document.getElementById("count-pendiente").innerText = p;
             document.getElementById("count-exito").innerText = e;
             document.getElementById("count-rechazado").innerText = r;
         }
 
-        // Buscador
         document.getElementById('buscador').addEventListener('keyup', function(e) {
             const term = e.target.value.toLowerCase();
-            const filas = document.querySelectorAll('#lista-farmacias tr');
-            filas.forEach(fila => {
-                const texto = fila.innerText.toLowerCase();
-                fila.style.display = texto.includes(term) ? '' : 'none';
+            document.querySelectorAll('#lista-farmacias tr').forEach(fila => {
+                fila.style.display = fila.innerText.toLowerCase().includes(term) ? '' : 'none';
             });
         });
 
-        // Arrancar
         init();
     </script>
 </body>
