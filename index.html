@@ -3,219 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seguimiento Prácticas Farmacia 💊</title>
+    <title>Mis Prácticas - Panel Real</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* SEMÁFORO DE ESTADOS */
-        .badge { @apply px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full shadow-sm border; }
-        
-        .status-pendiente { @apply bg-yellow-50 text-yellow-700 border-yellow-200; }
-        .status-respondido { @apply bg-blue-50 text-blue-700 border-blue-200; }
-        .status-exito { @apply bg-green-100 text-green-800 border-green-300 ring-2 ring-green-400 ring-opacity-50; }
-        .status-rechazado { @apply bg-red-50 text-red-600 border-red-100 line-through opacity-75; }
-        
-        body { background-color: #f8fafc; }
-        .row-rechazado { @apply bg-gray-50 opacity-60 grayscale; } 
-        
-        /* Spinner de carga */
-        .loading-spinner {
-            border: 4px solid #e2e8f0; border-top: 4px solid #0d9488; border-radius: 50%;
-            width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 40px auto;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
 </head>
-<body class="text-gray-800 font-sans antialiased">
+<body class="bg-gray-50 text-gray-800 p-4 sm:p-8">
 
-    <div class="max-w-6xl mx-auto p-4 sm:p-8">
-        <header class="mb-6 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-            <div>
-                <h1 class="text-3xl font-extrabold text-teal-700 tracking-tight">💊 Mis Prácticas</h1>
-                <p class="text-gray-400 mt-1 text-sm">Panel de control en tiempo real</p>
-            </div>
-            
-            <div class="mt-4 md:mt-0 flex gap-4 text-center">
-                <div class="bg-yellow-50 p-2 rounded-lg border border-yellow-100 min-w-[80px]">
-                    <span id="count-pendiente" class="block text-xl font-bold text-yellow-700">-</span>
-                    <span class="text-xs text-yellow-600 uppercase">Pendientes</span>
-                </div>
-                <div class="bg-green-50 p-2 rounded-lg border border-green-100 min-w-[80px]">
-                    <span id="count-exito" class="block text-xl font-bold text-green-700">-</span>
-                    <span class="text-xs text-green-600 uppercase">Activos</span>
-                </div>
-                <div class="bg-red-50 p-2 rounded-lg border border-red-100 min-w-[80px]">
-                    <span id="count-rechazado" class="block text-xl font-bold text-red-700">-</span>
-                    <span class="text-xs text-red-600 uppercase">Rechazados</span>
-                </div>
-            </div>
-        </header>
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-extrabold mb-8 text-teal-800 tracking-tight">💊 Control de Prácticas</h1>
 
-        <div class="mb-6">
-            <div class="relative">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </span>
-                <input type="text" id="buscador" placeholder="🔍 Buscar farmacia, localidad, estado..." 
-                       class="w-full pl-10 p-4 border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white transition-shadow">
-            </div>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 min-h-[300px]">
-            <div id="loader" class="loading-spinner"></div>
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-100">
-                    <thead class="bg-gray-50">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-100">
                         <tr>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Farmacia / Acciones</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Ubicación</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Estado</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Notas</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Farmacia</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Localidad</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase border-x">Estado</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Notas Completas</th>
                         </tr>
                     </thead>
-                    <tbody id="lista-farmacias" class="divide-y divide-gray-100 hidden">
-                        </tbody>
+                    <tbody id="tabla-cuerpo" class="divide-y divide-gray-100 bg-white">
+                        <tr><td colspan="4" class="px-6 py-10 text-center text-gray-400 italic">Cargando datos desde el Excel...</td></tr>
+                    </tbody>
                 </table>
             </div>
-            <div id="error-msg" class="hidden p-8 text-center text-red-500 font-medium"></div>
         </div>
-        
-        <footer class="mt-8 text-center text-xs text-gray-400 pb-8">
-            <p>⚡ Sincronización instantánea activada</p>
-        </footer>
     </div>
 
     <script>
-        // TU URL CONFIGURADA
-        const apiUrl = 'https://script.google.com/macros/s/AKfycbz96ggVZhkjS_ZxeqG_wb4qci60OF47-pPLUw5K6J3BJj2aR5KPRDEemjNh9HksjQYJog/exec';
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbz96ggVZhkjS_ZxeqG_wb4qci60OF47-pPLUw5K6J3BJj2aR5KPRDEemjNh9HksjQYJog/exec';
 
-        async function init() {
+        async function cargarDatos() {
             try {
-                // TRUCO ANTI-CACHÉ: Añadimos '?nocache=' y la hora actual
-                const uniqueUrl = apiUrl + '?nocache=' + new Date().getTime();
-                
-                const response = await fetch(uniqueUrl);
-                
-                if (!response.ok) throw new Error('Error de conexión con Google');
-                
-                const data = await response.json();
-                
-                document.getElementById('loader').style.display = 'none';
-                document.getElementById('lista-farmacias').classList.remove('hidden');
-
-                renderTable(data);
-                updateCounters(data);
-
+                const url = scriptUrl + '?t=' + Date.now();
+                const respuesta = await fetch(url);
+                const datos = await respuesta.json();
+                pintarTabla(datos);
             } catch (error) {
-                console.error("Error:", error);
-                document.getElementById('loader').style.display = 'none';
-                document.getElementById('error-msg').classList.remove('hidden');
-                document.getElementById('error-msg').innerText = "⚠️ Error cargando datos: " + error.message;
+                console.error(error);
+                document.getElementById('tabla-cuerpo').innerHTML = '<tr><td colspan="4" class="p-4 text-red-500 text-center font-bold">⚠️ Error de conexión.</td></tr>';
             }
         }
 
-        function renderTable(data) {
-            const tbody = document.getElementById('lista-farmacias');
-            tbody.innerHTML = '';
+        function pintarTabla(datos) {
+            const tbody = document.getElementById('tabla-cuerpo');
+            tbody.innerHTML = ''; 
 
-            // Ordenar datos
-            data.sort((a, b) => {
-                const getScore = (estado) => {
-                    const e = (estado || '').toLowerCase();
-                    if (e.includes('entrevista') || e.includes('si') || e.includes('acept') || e.includes('ok')) return 3;
-                    if (e.includes('respondido')) return 2;
-                    if (e.includes('pendiente') || e === '') return 1;
-                    if (e.includes('no') || e.includes('rechaz') || e.includes('cerrado')) return 0;
-                    return 1;
-                };
-                return getScore(b.ESTADO) - getScore(a.ESTADO);
-            });
+            datos.forEach(filaRaw => {
+                // LIMPIEZA DE COLUMNAS: Quitamos espacios al principio o final de cada nombre de columna
+                const fila = {};
+                Object.keys(filaRaw).forEach(key => {
+                    fila[key.trim()] = filaRaw[key];
+                });
 
-            data.forEach(row => {
-                if (!row.FARMACIA) return;
+                if (!fila.FARMACIA) return; 
 
-                const est = row.ESTADO ? row.ESTADO.toLowerCase() : 'pendiente';
-                let statusClass = 'status-pendiente';
-                let rowClass = '';
-                let icon = '⏳';
+                // Lógica de colores según el contenido de "ESTADO"
+                let badgeStyle = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                let rowStyle = '';
+                const st = (fila.ESTADO || '').toLowerCase();
 
-                if (est.includes('pendiente') || est === '') {
-                    statusClass = 'status-pendiente';
-                    icon = '⏳';
+                if (st.includes('rechaza') || st.includes('no')) {
+                    badgeStyle = 'bg-red-100 text-red-800 border-red-200';
+                    rowStyle = 'bg-gray-50 opacity-80';
+                } else if (st.includes('acept') || st.includes('si') || st.includes('entrevis')) {
+                    badgeStyle = 'bg-green-100 text-green-800 border-green-200 font-bold ring-1 ring-green-400';
+                } else if (st.includes('respondido')) {
+                    badgeStyle = 'bg-blue-100 text-blue-800 border-blue-200';
                 }
-                else if (est.includes('respondido')) {
-                    statusClass = 'status-respondido';
-                    icon = '📩';
-                }
-                else if (est.includes('entrevista') || est.includes('si') || est.includes('acept') || est.includes('ok')) {
-                    statusClass = 'status-exito';
-                    icon = '🚀';
-                }
-                else if (est.includes('no') || est.includes('rechaz') || est.includes('cerrado') || est.includes('denegado')) {
-                    statusClass = 'status-rechazado';
-                    rowClass = 'row-rechazado'; 
-                    icon = '❌';
-                }
-
-                // Enlaces
-                const mailSubject = encodeURIComponent("Candidatura Prácticas - [Tu Nombre]");
-                const mailBody = encodeURIComponent("Buenos días, \n\nQuería consultar el estado de mi candidatura...\n\nUn saludo.");
-                const linkMail = `mailto:${row.EMAIL}?subject=${mailSubject}&body=${mailBody}`;
-                const linkMaps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(row.FARMACIA + ' ' + row.LOCALIDAD)}`;
 
                 const tr = document.createElement('tr');
-                tr.className = `hover:bg-gray-50 transition-colors duration-150 ${rowClass}`;
+                tr.className = `hover:bg-gray-50 transition-colors ${rowStyle}`;
                 tr.innerHTML = `
                     <td class="px-6 py-4">
-                        <div class="font-bold text-gray-800">${row.FARMACIA}</div>
-                        <div class="flex gap-2 mt-2 opacity-100">
-                            <a href="${linkMail}" class="text-xs bg-white border border-gray-200 text-gray-600 px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-600 transition flex items-center gap-1">
-                                ✉️ Email
-                            </a>
-                            <a href="${linkMaps}" target="_blank" class="text-xs bg-white border border-gray-200 text-gray-600 px-2 py-1 rounded hover:bg-green-50 hover:text-green-600 transition flex items-center gap-1">
-                                📍 Mapa
-                            </a>
-                        </div>
+                        <div class="font-bold text-gray-900">${fila.FARMACIA}</div>
+                        <div class="text-[10px] font-mono text-teal-600 mt-1 uppercase tracking-tighter">${fila.EMAIL}</div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
-                            ${row.LOCALIDAD || '-'}
+                    <td class="px-6 py-4 text-sm text-gray-600">${fila.LOCALIDAD}</td>
+                    <td class="px-6 py-4 border-x text-center">
+                        <span class="px-3 py-1 rounded-full text-[11px] border uppercase tracking-wider ${badgeStyle}">
+                            ${fila.ESTADO || 'Pendiente'}
                         </span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="badge ${statusClass}">
-                            ${icon} ${row.ESTADO || 'Pendiente'}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-sm text-gray-500 italic max-w-xs truncate">
-                        ${row.NOTAS || ''}
+                    <td class="px-6 py-4 text-sm text-gray-700 leading-relaxed min-w-[300px]">
+                        ${fila.NOTAS || '<span class="text-gray-300 italic">Sin notas</span>'}
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        function updateCounters(data) {
-            let p = 0, e = 0, r = 0;
-            data.forEach(row => {
-                if(!row.FARMACIA) return;
-                const st = (row.ESTADO || '').toLowerCase();
-                if(st.includes('rechaz') || st.includes('no') || st.includes('cerrado')) r++;
-                else if(st.includes('entrevista') || st.includes('si') || st.includes('acept') || st.includes('ok')) e++;
-                else p++;
-            });
-            document.getElementById("count-pendiente").innerText = p;
-            document.getElementById("count-exito").innerText = e;
-            document.getElementById("count-rechazado").innerText = r;
-        }
-
-        document.getElementById('buscador').addEventListener('keyup', function(e) {
-            const term = e.target.value.toLowerCase();
-            document.querySelectorAll('#lista-farmacias tr').forEach(fila => {
-                fila.style.display = fila.innerText.toLowerCase().includes(term) ? '' : 'none';
-            });
-        });
-
-        init();
+        cargarDatos();
     </script>
 </body>
 </html>
