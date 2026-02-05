@@ -3,97 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mis Prácticas - Panel Real</title>
+    <title>Seguimiento Prácticas Farmacia 💊</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .badge { @apply px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full shadow-sm border; }
+        .status-pendiente { @apply bg-yellow-50 text-yellow-700 border-yellow-200; }
+        .status-respondido { @apply bg-blue-50 text-blue-700 border-blue-200; }
+        .status-exito { @apply bg-green-100 text-green-800 border-green-300 ring-2 ring-green-400 ring-opacity-50; }
+        .status-rechazado { @apply bg-red-50 text-red-600 border-red-100 line-through opacity-75; }
+        body { background-color: #f8fafc; }
+        .row-rechazado { @apply bg-gray-50 opacity-60 grayscale; }
+    </style>
 </head>
-<body class="bg-gray-50 text-gray-800 p-4 sm:p-8">
+<body class="text-gray-800 font-sans antialiased">
 
-    <div class="max-w-6xl mx-auto">
-        <h1 class="text-3xl font-extrabold mb-8 text-teal-800 tracking-tight">💊 Control de Prácticas</h1>
+    <div class="max-w-6xl mx-auto p-4 sm:p-8">
+        <header class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+            <div>
+                <h1 class="text-3xl font-extrabold text-teal-700 tracking-tight">💊 Mis Prácticas</h1>
+                <p class="text-gray-400 mt-1 text-sm">Panel de control en tiempo real</p>
+            </div>
+            <div id="stats" class="mt-4 md:mt-0 text-right font-bold text-teal-600">
+                Sincronizado con Google Sheets
+            </div>
+        </header>
 
-        <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-100">
+                <table class="min-w-full divide-y divide-gray-100">
+                    <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Farmacia</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Localidad</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase border-x">Estado</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Notas Completas</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Farmacia / Email</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Ubicación</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Estado</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Notas</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-cuerpo" class="divide-y divide-gray-100 bg-white">
-                        <tr><td colspan="4" class="px-6 py-10 text-center text-gray-400 italic">Cargando datos desde el Excel...</td></tr>
-                    </tbody>
+                    <tbody id="lista-farmacias" class="divide-y divide-gray-100">
+                        </tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <script>
-        const scriptUrl = 'https://script.google.com/macros/s/AKfycbz96ggVZhkjS_ZxeqG_wb4qci60OF47-pPLUw5K6J3BJj2aR5KPRDEemjNh9HksjQYJog/exec';
+        const apiUrl = 'https://script.google.com/macros/s/AKfycbz96ggVZhkjS_ZxeqG_wb4qci60OF47-pPLUw5K6J3BJj2aR5KPRDEemjNh9HksjQYJog/exec';
 
-        async function cargarDatos() {
+        async function init() {
             try {
-                const url = scriptUrl + '?t=' + Date.now();
-                const respuesta = await fetch(url);
-                const datos = await respuesta.json();
-                pintarTabla(datos);
+                const response = await fetch(apiUrl + '?nocache=' + new Date().getTime());
+                const data = await response.json();
+                renderTable(data);
             } catch (error) {
-                console.error(error);
-                document.getElementById('tabla-cuerpo').innerHTML = '<tr><td colspan="4" class="p-4 text-red-500 text-center font-bold">⚠️ Error de conexión.</td></tr>';
+                console.error("Error:", error);
             }
         }
 
-        function pintarTabla(datos) {
-            const tbody = document.getElementById('tabla-cuerpo');
-            tbody.innerHTML = ''; 
+        function renderTable(data) {
+            const tbody = document.getElementById('lista-farmacias');
+            tbody.innerHTML = '';
 
-            datos.forEach(filaRaw => {
-                // LIMPIEZA DE COLUMNAS: Quitamos espacios al principio o final de cada nombre de columna
-                const fila = {};
-                Object.keys(filaRaw).forEach(key => {
-                    fila[key.trim()] = filaRaw[key];
-                });
+            // 1. Limpiar encabezados y 2. Asignar pesos para el ORDEN
+            const processedData = data.map((item, index) => {
+                const cleanItem = {};
+                Object.keys(item).forEach(key => cleanItem[key.trim()] = item[key]);
+                
+                // Definir prioridad (Score)
+                const st = (cleanItem.ESTADO || '').toLowerCase();
+                let score = 1; // Pendiente / Otros
+                if (st.includes('acept') || st.includes('si') || st.includes('entrevis')) score = 3; // Top
+                else if (st.includes('respondido')) score = 2;
+                else if (st.includes('no') || st.includes('rechaz')) score = 0; // Bottom
+                
+                return { ...cleanItem, score, originalIndex: index };
+            });
 
-                if (!fila.FARMACIA) return; 
+            // 3. Ordenar: Por Score (3 a 0) y luego por posición original (distancia)
+            processedData.sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                return a.originalIndex - b.originalIndex;
+            });
 
-                // Lógica de colores según el contenido de "ESTADO"
-                let badgeStyle = 'bg-yellow-100 text-yellow-800 border-yellow-200';
-                let rowStyle = '';
-                const st = (fila.ESTADO || '').toLowerCase();
+            processedData.forEach(row => {
+                if (!row.FARMACIA) return;
 
-                if (st.includes('rechaza') || st.includes('no')) {
-                    badgeStyle = 'bg-red-100 text-red-800 border-red-200';
-                    rowStyle = 'bg-gray-50 opacity-80';
-                } else if (st.includes('acept') || st.includes('si') || st.includes('entrevis')) {
-                    badgeStyle = 'bg-green-100 text-green-800 border-green-200 font-bold ring-1 ring-green-400';
-                } else if (st.includes('respondido')) {
-                    badgeStyle = 'bg-blue-100 text-blue-800 border-blue-200';
-                }
+                const est = (row.ESTADO || '').toLowerCase();
+                let statusClass = 'status-pendiente';
+                let rowClass = '';
+                let icon = '⏳';
+
+                if (row.score === 3) { statusClass = 'status-exito'; icon = '🚀'; }
+                else if (row.score === 2) { statusClass = 'status-respondido'; icon = '📩'; }
+                else if (row.score === 0) { statusClass = 'status-rechazado'; rowClass = 'row-rechazado'; icon = '❌'; }
 
                 const tr = document.createElement('tr');
-                tr.className = `hover:bg-gray-50 transition-colors ${rowStyle}`;
+                tr.className = `hover:bg-gray-50 transition-colors ${rowClass}`;
                 tr.innerHTML = `
                     <td class="px-6 py-4">
-                        <div class="font-bold text-gray-900">${fila.FARMACIA}</div>
-                        <div class="text-[10px] font-mono text-teal-600 mt-1 uppercase tracking-tighter">${fila.EMAIL}</div>
+                        <div class="font-bold text-gray-800">${row.FARMACIA}</div>
+                        <div class="text-xs text-teal-600 font-mono mt-1">${row.EMAIL}</div>
                     </td>
-                    <td class="px-6 py-4 text-sm text-gray-600">${fila.LOCALIDAD}</td>
-                    <td class="px-6 py-4 border-x text-center">
-                        <span class="px-3 py-1 rounded-full text-[11px] border uppercase tracking-wider ${badgeStyle}">
-                            ${fila.ESTADO || 'Pendiente'}
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                            ${row.LOCALIDAD}
                         </span>
                     </td>
-                    <td class="px-6 py-4 text-sm text-gray-700 leading-relaxed min-w-[300px]">
-                        ${fila.NOTAS || '<span class="text-gray-300 italic">Sin notas</span>'}
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="badge ${statusClass}">
+                            ${icon} ${row.ESTADO || 'Pendiente'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600 leading-relaxed min-w-[300px]">
+                        ${row.NOTAS || '-'}
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        cargarDatos();
+        init();
     </script>
 </body>
 </html>
