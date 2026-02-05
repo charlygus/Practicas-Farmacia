@@ -7,33 +7,59 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
-        .status-pendiente { @apply bg-yellow-100 text-yellow-800 border border-yellow-200; }
-        .status-respondido { @apply bg-blue-100 text-blue-800 border border-blue-200; }
-        .status-entrevista { @apply bg-green-100 text-green-800 border border-green-200; }
-        .status-no { @apply bg-red-100 text-red-800 border border-red-200; }
-        body { background-color: #f3f4f6; }
+        /* SEMÁFORO DE ESTADOS */
+        .badge { @apply px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full shadow-sm border; }
+        
+        .status-pendiente { @apply bg-yellow-50 text-yellow-700 border-yellow-200; }
+        .status-respondido { @apply bg-blue-50 text-blue-700 border-blue-200; }
+        .status-exito { @apply bg-green-100 text-green-800 border-green-300 ring-2 ring-green-400 ring-opacity-50; }
+        .status-rechazado { @apply bg-red-50 text-red-600 border-red-100 line-through opacity-75; }
+        
+        body { background-color: #f8fafc; }
+        .row-rechazado { @apply bg-gray-50 opacity-60 grayscale; } /* Efecto visual para toda la fila */
     </style>
 </head>
 <body class="text-gray-800 font-sans antialiased">
 
     <div class="max-w-6xl mx-auto p-4 sm:p-8">
-        <header class="mb-8 flex flex-col sm:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <header class="mb-6 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
             <div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold text-teal-600 tracking-tight">💊 Mis Prácticas de Farmacia</h1>
+                <h1 class="text-3xl font-extrabold text-teal-700 tracking-tight">💊 Mis Prácticas</h1>
                 <p class="text-gray-400 mt-1 text-sm">Panel de control de candidaturas</p>
             </div>
-            <div class="mt-4 sm:mt-0 text-right">
-                <span class="block text-xs text-gray-400 uppercase tracking-wider font-semibold">Estado de Solicitudes</span>
-                <span id="stats" class="font-bold text-xl text-gray-800">Cargando...</span>
+            
+            <div class="mt-4 md:mt-0 flex gap-4 text-center">
+                <div class="bg-yellow-50 p-2 rounded-lg border border-yellow-100">
+                    <span id="count-pendiente" class="block text-xl font-bold text-yellow-700">0</span>
+                    <span class="text-xs text-yellow-600 uppercase">Pendientes</span>
+                </div>
+                <div class="bg-green-50 p-2 rounded-lg border border-green-100">
+                    <span id="count-exito" class="block text-xl font-bold text-green-700">0</span>
+                    <span class="text-xs text-green-600 uppercase">Activos</span>
+                </div>
+                <div class="bg-red-50 p-2 rounded-lg border border-red-100">
+                    <span id="count-rechazado" class="block text-xl font-bold text-red-700">0</span>
+                    <span class="text-xs text-red-600 uppercase">Rechazados</span>
+                </div>
             </div>
         </header>
+
+        <div class="mb-6">
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </span>
+                <input type="text" id="buscador" placeholder="🔍 Buscar farmacia, pueblo, estado..." 
+                       class="w-full pl-10 p-4 border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+            </div>
+        </div>
 
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-100">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Farmacia / Email</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Farmacia / Acciones</th>
                             <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Ubicación</th>
                             <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Estado</th>
                             <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Notas</th>
@@ -44,28 +70,31 @@
                 </table>
             </div>
         </div>
-
-        <footer class="mt-8 text-center text-xs text-gray-400">
-            <p>Sincronizado con Google Sheets • Actualiza la página para ver cambios</p>
+        
+        <footer class="mt-8 text-center text-xs text-gray-400 pb-8">
+            <p>💡 Si actualizas el Sheet, espera 5 min y recarga esta página.</p>
         </footer>
     </div>
 
     <script>
-        // TU ENLACE YA CONFIGURADO:
+        // TU ENLACE CONFIGURADO
         const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTHMTvkxxKH3An0VqizcHI2qYCcBfzLKyLjrhs7klbR_UyrTmy4f5M2aJurg9Vutb5VjEPLJxZEdX-r/pub?output=csv';
 
         function init() {
-            Papa.parse(sheetUrl, {
+            // Truco anti-caché: Añadimos un número aleatorio al final de la URL
+            const urlConTruco = sheetUrl + '&cache_buster=' + new Date().getTime();
+
+            Papa.parse(urlConTruco, {
                 download: true,
                 header: true,
                 skipEmptyLines: true,
                 complete: function(results) {
                     renderTable(results.data);
-                    updateStats(results.data);
+                    updateCounters(results.data);
                 },
                 error: function(err) {
                     console.error("Error:", err);
-                    document.getElementById('lista-farmacias').innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-400 font-medium">No se pudieron cargar los datos. Verifica que el Sheet tenga datos.</td></tr>`;
+                    document.getElementById('lista-farmacias').innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-400">Error cargando datos.</td></tr>`;
                 }
             });
         }
@@ -74,63 +103,114 @@
             const tbody = document.getElementById('lista-farmacias');
             tbody.innerHTML = '';
 
-            // Ordenar: Respondidos primero, luego pendientes
+            // Ordenar: Exitos primero, Pendientes despues, Rechazados al final
             data.sort((a, b) => {
-                const estadoA = (a.Estado || '').toLowerCase();
-                const estadoB = (b.Estado || '').toLowerCase();
-                if (estadoA === 'pendiente') return 1;
-                if (estadoB === 'pendiente') return -1;
-                return 0;
+                const getScore = (estado) => {
+                    const e = (estado || '').toLowerCase();
+                    if (e.includes('entrevista') || e.includes('si') || e.includes('acept')) return 3; // Top
+                    if (e.includes('respondido')) return 2;
+                    if (e.includes('pendiente')) return 1;
+                    if (e.includes('no') || e.includes('rechaz')) return 0; // Al fondo
+                    return 1;
+                };
+                return getScore(b.ESTADO) - getScore(a.ESTADO);
             });
 
             data.forEach(row => {
                 if (!row.FARMACIA) return;
 
-                let statusClass = 'bg-gray-50 text-gray-600 border border-gray-200';
+                // Lógica del Semáforo
                 const est = row.ESTADO ? row.ESTADO.toLowerCase() : 'pendiente';
-                
-                if (est.includes('pendiente')) statusClass = 'status-pendiente';
-                else if (est.includes('respondido')) statusClass = 'status-respondido';
-                else if (est.includes('entrevista') || est.includes('si')) statusClass = 'status-entrevista';
-                else if (est.includes('no') || est.includes('rechaza')) statusClass = 'status-no';
+                let statusClass = 'status-pendiente';
+                let rowClass = '';
+                let icon = '⏳';
+
+                if (est.includes('pendiente')) {
+                    statusClass = 'status-pendiente';
+                    icon = '⏳';
+                }
+                else if (est.includes('respondido')) {
+                    statusClass = 'status-respondido';
+                    icon = '📩';
+                }
+                else if (est.includes('entrevista') || est.includes('si') || est.includes('acept') || est.includes('ok')) {
+                    statusClass = 'status-exito';
+                    icon = '🚀';
+                }
+                else if (est.includes('no') || est.includes('rechaz') || est.includes('cerrado') || est.includes('denegado')) {
+                    statusClass = 'status-rechazado';
+                    rowClass = 'row-rechazado'; // Apaga toda la fila
+                    icon = '❌';
+                }
+
+                // Enlaces
+                const mailSubject = encodeURIComponent("Candidatura Prácticas - [Tu Nombre]");
+                const mailBody = encodeURIComponent("Buenos días, \n\nQuería consultar el estado de mi candidatura...\n\nUn saludo.");
+                const linkMail = `mailto:${row.EMAIL}?subject=${mailSubject}&body=${mailBody}`;
+                const linkMaps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(row.FARMACIA + ' ' + row.LOCALIDAD)}`;
 
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-gray-50 transition-colors duration-150";
+                tr.className = `hover:bg-gray-50 transition-colors duration-150 ${rowClass}`;
                 tr.innerHTML = `
                     <td class="px-6 py-4">
                         <div class="font-bold text-gray-800">${row.FARMACIA}</div>
-                        <div class="text-xs text-teal-600 font-mono mt-1">${row.EMAIL}</div>
+                        <div class="flex gap-2 mt-2 opacity-100">
+                            <a href="${linkMail}" class="text-xs bg-white border border-gray-200 text-gray-600 px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-600 transition flex items-center gap-1">
+                                ✉️ Email
+                            </a>
+                            <a href="${linkMaps}" target="_blank" class="text-xs bg-white border border-gray-200 text-gray-600 px-2 py-1 rounded hover:bg-green-50 hover:text-green-600 transition flex items-center gap-1">
+                                📍 Mapa
+                            </a>
+                        </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
                             ${row.LOCALIDAD}
                         </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full shadow-sm ${statusClass}">
-                            ${row.ESTADO || 'Pendiente'}
+                        <span class="badge ${statusClass}">
+                            ${icon} ${row.ESTADO || 'Pendiente'}
                         </span>
                     </td>
-                    <td class="px-6 py-4 text-sm text-gray-500 italic">
-                        ${row.NOTAS || ''}
+                    <td class="px-6 py-4 text-sm text-gray-500 italic max-w-xs truncate">
+                        ${row.NOTAS || '-'}
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        function updateStats(data) {
-            const total = data.length;
-            const answers = data.filter(r => r.Estado && !r.Estado.toLowerCase().includes('pendiente')).length;
-            const percent = total > 0 ? Math.round((answers / total) * 100) : 0;
+        function updateCounters(data) {
+            let p = 0, e = 0, r = 0;
+            data.forEach(row => {
+                if(!row.FARMACIA) return;
+                const st = (row.ESTADO || '').toLowerCase();
+                if(st.includes('rechaz') || st.includes('no') || st.includes('cerrado')) r++;
+                else if(st.includes('entrevista') || st.includes('si') || st.includes('acept')) e++;
+                else p++;
+            });
             
-            document.getElementById('stats').innerHTML = `
-                <span class="text-teal-600">${answers}</span> <span class="text-gray-400 font-normal">/ ${total} respondidas</span>
-                <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2 overflow-hidden">
-                    <div class="bg-teal-500 h-1.5 rounded-full" style="width: ${percent}%"></div>
-                </div>
-            `;
+            animateValue("count-pendiente", p);
+            animateValue("count-exito", e);
+            animateValue("count-rechazado", r);
         }
+
+        // Efecto visual contador
+        function animateValue(id, end) {
+            const obj = document.getElementById(id);
+            obj.innerText = end;
+        }
+
+        // Buscador
+        document.getElementById('buscador').addEventListener('keyup', function(e) {
+            const term = e.target.value.toLowerCase();
+            const filas = document.querySelectorAll('#lista-farmacias tr');
+            filas.forEach(fila => {
+                const texto = fila.innerText.toLowerCase();
+                fila.style.display = texto.includes(term) ? '' : 'none';
+            });
+        });
 
         init();
     </script>
