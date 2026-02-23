@@ -1,186 +1,59 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seguimiento Prácticas Farmacia</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .badge { @apply px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full shadow-sm border; }
-        .status-pendiente { @apply bg-yellow-50 text-yellow-700 border-yellow-200; }
-        .status-respondido { @apply bg-blue-50 text-blue-700 border-blue-200; }
-        .status-exito { @apply bg-green-100 text-green-800 border-green-300 ring-2 ring-green-400 ring-opacity-50; }
-        .status-rechazado { @apply bg-red-50 text-red-600 border-red-100 line-through opacity-75; }
-        body { background-color: #f8fafc; }
-        .tab-active { @apply border-teal-600 text-teal-700 border-b-2 font-bold; }
-        .tab-inactive { @apply text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent; }
-        .loader { border-top-color: #0d9488; animation: spinner 0.8s linear infinite; border-width: 3px; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
-</head>
-<body class="text-gray-800 font-sans antialiased">
-
-    <div class="max-w-6xl mx-auto p-4 sm:p-8">
-        <header class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-            <div>
-                <h1 class="text-3xl font-extrabold text-teal-700 tracking-tight">💊 Mis Prácticas</h1>
-                <p class="text-gray-400 mt-1 text-sm">Panel de control unificado</p>
-            </div>
-            <nav class="flex space-x-8 mt-6 md:mt-0">
-                <button onclick="switchTab('practicas')" id="btn-practicas" class="tab-active py-2 px-1 transition-all">Mis Prácticas</button>
-                <button onclick="switchTab('ofertas')" id="btn-ofertas" class="tab-inactive py-2 px-1 transition-all">Ofertas de Trabajo</button>
-            </nav>
-        </header>
-
-        <div id="view-practicas" class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-100 text-sm">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-4 text-left font-bold text-gray-400 uppercase tracking-wider">Farmacia</th>
-                            <th class="px-6 py-4 text-left font-bold text-gray-400 uppercase tracking-wider">Ubicación</th>
-                            <th class="px-6 py-4 text-left font-bold text-gray-400 uppercase tracking-wider">Estado</th>
-                            <th class="px-6 py-4 text-left font-bold text-gray-400 uppercase tracking-wider">Notas</th>
-                        </tr>
-                    </thead>
-                    <tbody id="lista-farmacias" class="divide-y divide-gray-100"></tbody>
-                </table>
-            </div>
+<script>
+async function openModal(o) {
+    document.getElementById('modal-titulo').innerText = "Detalles de Contacto";
+    const content = document.getElementById('modal-contenido');
+    content.innerHTML = `
+        <div class="flex flex-col items-center py-10">
+            <div class="loader h-10 w-10 border-gray-200 rounded-full mb-3"></div>
+            <p class="text-gray-400 text-sm italic">Leyendo datos del COF...</p>
         </div>
+    `;
+    document.getElementById('modal-oferta').classList.replace('hidden', 'flex');
 
-        <div id="view-ofertas" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-    </div>
-
-    <div id="modal-oferta" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col scale-95 transition-transform">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
-                <h3 id="modal-titulo" class="text-xl font-bold text-teal-700 truncate pr-4"></h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
-            </div>
-            <div id="modal-contenido" class="p-8 overflow-y-auto grow bg-white">
+    try {
+        const response = await fetch(`${apiUrl}?action=getJobDetails&url=${encodeURIComponent(o.link)}`);
+        const d = await response.json();
+        
+        content.innerHTML = `
+            <div class="space-y-6">
+                <div>
+                    <h4 class="text-2xl font-bold text-gray-800 leading-tight mb-2">${o.puesto}</h4>
+                    <p class="text-teal-600 font-bold text-sm uppercase tracking-wider">${o.localidad} | ${o.fecha}</p>
                 </div>
-            <div class="p-6 border-t border-gray-100 text-right bg-gray-50">
-                <button onclick="closeModal()" class="bg-teal-600 text-white px-8 py-2 rounded-xl font-bold hover:bg-teal-700 transition-all">Cerrar</button>
-            </div>
-        </div>
-    </div>
 
-    <script>
-        const apiUrl = 'https://script.google.com/macros/s/AKfycbz96ggVZhkjS_ZxeqG_wb4qci60OF47-pPLUw5K6J3BJj2aR5KPRDEemjNh9HksjQYJog/exec';
-
-        async function init() {
-            loadPracticas();
-        }
-
-        async function loadPracticas() {
-            const tbody = document.getElementById('lista-farmacias');
-            tbody.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-gray-400 italic">Sincronizando...</td></tr>';
-            try {
-                const response = await fetch(`${apiUrl}?v=${Date.now()}`);
-                const data = await response.json();
-                renderPracticas(data);
-            } catch (e) { console.error(e); }
-        }
-
-        async function loadOfertas() {
-            const container = document.getElementById('view-ofertas');
-            container.innerHTML = '<div class="col-span-full flex flex-col items-center py-20"><div class="loader h-10 w-10 border-gray-200 rounded-full mb-4"></div><p class="text-gray-400 font-medium">Buscando vacantes en COF Alicante...</p></div>';
-            try {
-                const response = await fetch(`${apiUrl}?action=getJobs&v=${Date.now()}`);
-                const data = await response.json();
-                renderOfertas(data);
-            } catch (e) { container.innerHTML = '<p class="col-span-full text-center py-20 text-red-500">Error al cargar ofertas.</p>'; }
-        }
-
-        function renderPracticas(data) {
-            const tbody = document.getElementById('lista-farmacias');
-            tbody.innerHTML = '';
-            data.filter(row => row.FARMACIA).forEach(row => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-gray-50 transition-colors";
-                tr.innerHTML = `
-                    <td class="px-6 py-4"><div class="font-bold text-gray-800">${row.FARMACIA}</div><div class="text-[10px] text-teal-600 font-mono uppercase">${row.EMAIL || ''}</div></td>
-                    <td class="px-6 py-4 text-gray-500">${row.LOCALIDAD || '-'}</td>
-                    <td class="px-6 py-4"><span class="badge status-pendiente">⏳ ${row.ESTADO || 'Pendiente'}</span></td>
-                    <td class="px-6 py-4 text-gray-600 leading-snug">${row.NOTAS || '-'}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function renderOfertas(data) {
-            const container = document.getElementById('view-ofertas');
-            container.innerHTML = '';
-            data.forEach(o => {
-                const card = document.createElement('div');
-                card.className = "bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-teal-200 transition-all cursor-pointer border-l-4 border-l-teal-500 group";
-                card.onclick = () => openModal(o);
-                card.innerHTML = `
-                    <div class="text-[10px] font-bold text-teal-600 mb-2 uppercase tracking-widest">${o.fecha}</div>
-                    <h4 class="font-bold text-gray-800 text-lg mb-2 leading-tight group-hover:text-teal-700">${o.puesto}</h4>
-                    <div class="text-gray-500 text-sm flex items-center font-medium italic">${o.localidad}</div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        async function openModal(o) {
-            document.getElementById('modal-titulo').innerText = o.puesto;
-            const content = document.getElementById('modal-contenido');
-            content.innerHTML = `
-                <div class="flex flex-col items-center py-10">
-                    <div class="loader h-10 w-10 border-gray-200 rounded-full mb-3"></div>
-                    <p class="text-gray-400 text-sm italic">Extrayendo información de contacto...</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Persona de Contacto</p>
+                        <p class="text-gray-800 font-bold">${d.persona}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Teléfono</p>
+                        <p class="text-gray-800 font-bold">${d.telefono}</p>
+                    </div>
+                    <div class="bg-teal-50 p-4 rounded-xl border border-teal-100 md:col-span-2">
+                        <p class="text-[10px] font-bold text-teal-600 uppercase mb-1">Email</p>
+                        <p class="text-gray-800 font-bold break-all">${d.email}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 md:col-span-2">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Dirección Completa</p>
+                        <p class="text-gray-800 font-medium">${d.direccion} (CP: ${d.cp})</p>
+                    </div>
                 </div>
-            `;
-            document.getElementById('modal-oferta').classList.replace('hidden', 'flex');
 
-            try {
-                const response = await fetch(`${apiUrl}?action=getJobDetails&url=${encodeURIComponent(o.link)}`);
-                const details = await response.json();
-                
-                content.innerHTML = `
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                        <div class="bg-teal-50 p-5 rounded-2xl border border-teal-100">
-                            <p class="text-[10px] font-bold text-teal-600 uppercase mb-1">Email de contacto</p>
-                            <p class="font-bold text-gray-800 break-words">${details.email}</p>
-                        </div>
-                        <div class="bg-teal-50 p-5 rounded-2xl border border-teal-100">
-                            <p class="text-[10px] font-bold text-teal-600 uppercase mb-1">Teléfono</p>
-                            <p class="font-bold text-gray-800">${details.telefono}</p>
-                        </div>
+                <div class="border-t border-dashed border-gray-200 pt-6">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-widest">Requisitos y Notas</p>
+                    <div class="text-gray-700 text-sm leading-relaxed bg-white p-4 rounded-lg border border-gray-50 italic">
+                        "${d.requisitos}"
                     </div>
-                    <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-3 tracking-widest">Descripción de la vacante</p>
-                        <div class="text-gray-700 text-sm leading-relaxed whitespace-pre-line bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                            ${details.descripcion}
-                        </div>
-                    </div>
-                    <div class="mt-6 text-center">
-                        <a href="${o.link}" target="_blank" class="text-teal-600 text-xs underline font-bold">Ver fuente original en COF Alicante</a>
-                    </div>
-                `;
-            } catch (e) {
-                content.innerHTML = '<p class="text-center text-red-500">Error al extraer los detalles.</p>';
-            }
-        }
+                </div>
 
-        function closeModal() { document.getElementById('modal-oferta').classList.replace('flex', 'hidden'); }
-
-        function switchTab(tab) {
-            const btnP = document.getElementById('btn-practicas'), btnO = document.getElementById('btn-ofertas');
-            const viewP = document.getElementById('view-practicas'), viewO = document.getElementById('view-ofertas');
-            if (tab === 'practicas') {
-                btnP.className = 'tab-active py-2 px-1'; btnO.className = 'tab-inactive py-2 px-1';
-                viewP.classList.remove('hidden'); viewO.classList.add('hidden');
-            } else {
-                btnO.className = 'tab-active py-2 px-1'; btnP.className = 'tab-inactive py-2 px-1';
-                viewO.classList.remove('hidden'); viewP.classList.add('hidden');
-                loadOfertas();
-            }
-        }
-
-        init();
-    </script>
-</body>
-</html>
+                <div class="text-center pt-4">
+                    <a href="${o.link}" target="_blank" class="text-teal-600 text-[10px] font-bold underline uppercase tracking-tighter">Ver publicación original</a>
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        content.innerHTML = '<p class="text-center text-red-500 py-10 font-bold">Error al conectar con la ficha técnica.</p>';
+    }
+}
+</script>
