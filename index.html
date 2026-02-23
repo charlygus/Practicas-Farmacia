@@ -25,7 +25,7 @@
         <header class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
             <div>
                 <h1 class="text-3xl font-extrabold text-teal-700 tracking-tight">💊 Mis Prácticas</h1>
-                <p class="text-gray-400 mt-1 text-sm">Panel de control actualizado</p>
+                <p class="text-gray-400 mt-1 text-sm">Panel de control unificado</p>
             </div>
             <nav class="flex space-x-8 mt-6 md:mt-0">
                 <button onclick="switchTab('practicas')" id="btn-practicas" class="tab-active py-2 px-1 transition-all">Mis Prácticas</button>
@@ -60,82 +60,12 @@
             </div>
             <div id="modal-contenido" class="p-6 overflow-y-auto grow"></div>
             <div class="p-6 border-t border-gray-100 text-right bg-gray-50">
-                <button onclick="closeModal()" class="bg-teal-600 text-white px-8 py-2 rounded-xl font-bold hover:bg-teal-700 transition-all shadow-md">Entendido</button>
+                <button onclick="closeModal()" class="bg-teal-600 text-white px-8 py-2 rounded-xl font-bold hover:bg-teal-700 transition-all">Cerrar Detalle</button>
             </div>
         </div>
     </div>
 
     <script>
-        // REEMPLAZA ESTA URL CON LA DE TU NUEVA IMPLEMENTACIÓN
-        const apiUrl = '<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seguimiento Prácticas Farmacia</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .badge { @apply px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full shadow-sm border; }
-        .status-pendiente { @apply bg-yellow-50 text-yellow-700 border-yellow-200; }
-        .status-respondido { @apply bg-blue-50 text-blue-700 border-blue-200; }
-        .status-exito { @apply bg-green-100 text-green-800 border-green-300 ring-2 ring-green-400 ring-opacity-50; }
-        .status-rechazado { @apply bg-red-50 text-red-600 border-red-100 line-through opacity-75; }
-        body { background-color: #f8fafc; }
-        .row-rechazado { @apply bg-gray-50 opacity-60 grayscale; }
-        .tab-active { @apply border-teal-600 text-teal-700 border-b-2 font-bold; }
-        .tab-inactive { @apply text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent; }
-        .loader { border-top-color: #0d9488; animation: spinner 1.5s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
-</head>
-<body class="text-gray-800 font-sans antialiased">
-
-    <div class="max-w-6xl mx-auto p-4 sm:p-8">
-        <header class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-            <div>
-                <h1 class="text-3xl font-extrabold text-teal-700 tracking-tight">💊 Mis Prácticas</h1>
-                <p class="text-gray-400 mt-1 text-sm">Panel de control actualizado</p>
-            </div>
-            <nav class="flex space-x-8 mt-6 md:mt-0">
-                <button onclick="switchTab('practicas')" id="btn-practicas" class="tab-active py-2 px-1 transition-all">Mis Prácticas</button>
-                <button onclick="switchTab('ofertas')" id="btn-ofertas" class="tab-inactive py-2 px-1 transition-all">Ofertas de Trabajo</button>
-            </nav>
-        </header>
-
-        <div id="view-practicas" class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-100">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Farmacia / Email</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Ubicación</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Estado</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Notas</th>
-                        </tr>
-                    </thead>
-                    <tbody id="lista-farmacias" class="divide-y divide-gray-100"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="view-ofertas" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-    </div>
-
-    <div id="modal-oferta" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
-                <h3 id="modal-titulo" class="text-xl font-bold text-teal-700 truncate mr-4"></h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
-            </div>
-            <div id="modal-contenido" class="p-6 overflow-y-auto grow"></div>
-            <div class="p-6 border-t border-gray-100 text-right bg-gray-50">
-                <button onclick="closeModal()" class="bg-teal-600 text-white px-8 py-2 rounded-xl font-bold hover:bg-teal-700 transition-all shadow-md">Entendido</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // REEMPLAZA ESTA URL CON LA DE TU NUEVA IMPLEMENTACIÓN
         const apiUrl = 'https://script.google.com/macros/s/AKfycbz96ggVZhkjS_ZxeqG_wb4qci60OF47-pPLUw5K6J3BJj2aR5KPRDEemjNh9HksjQYJog/exec';
 
         async function init() {
@@ -144,163 +74,37 @@
 
         async function loadPracticas() {
             const tbody = document.getElementById('lista-farmacias');
-            tbody.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-gray-400">Cargando datos...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-gray-400 italic">Cargando base de datos...</td></tr>';
             try {
-                const response = await fetch(`${apiUrl}?action=getPractices&v=${Date.now()}`);
+                const response = await fetch(`${apiUrl}?v=${Date.now()}`);
                 const data = await response.json();
                 renderPracticas(data);
-            } catch (e) { tbody.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-red-400 font-bold">Error al cargar prácticas. Revisa la URL de la API.</td></tr>'; }
-        }
-
-        async function loadOfertas() {
-            const container = document.getElementById('view-ofertas');
-            container.innerHTML = '<div class="col-span-full flex flex-col items-center py-20"><div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div><p class="text-gray-500 font-medium">Sincronizando con COF Alicante...</p></div>';
-            try {
-                const response = await fetch(`${apiUrl}?action=getJobs&v=${Date.now()}`);
-                const data = await response.json();
-                renderOfertas(data);
-            } catch (e) { container.innerHTML = '<div class="col-span-full text-center py-20 text-red-500 font-bold">Error de conexión. Asegúrate de haber publicado el script como "Cualquiera".</div>'; }
-        }
-
-        function renderPracticas(data) {
-            const tbody = document.getElementById('lista-farmacias');
-            tbody.innerHTML = '';
-            
-            data.filter(row => row.FARMACIA).forEach(row => {
-                const st = (row.ESTADO || '').toLowerCase();
-                let score = 1, statusClass = 'status-pendiente', rowClass = '', icon = '⏳';
-                if (st.includes('acept') || st.includes('si') || st.includes('entrevis')) { score = 3; statusClass = 'status-exito'; icon = '🚀'; }
-                else if (st.includes('respondido')) { score = 2; statusClass = 'status-respondido'; icon = '📩'; }
-                else if (st.includes('no') || st.includes('rechaz')) { score = 0; statusClass = 'status-rechazado'; rowClass = 'row-rechazado'; icon = '❌'; }
-
-                const tr = document.createElement('tr');
-                tr.className = `hover:bg-gray-50 transition-colors ${rowClass}`;
-                tr.innerHTML = `
-                    <td class="px-6 py-4">
-                        <div class="font-bold text-gray-800">${row.FARMACIA}</div>
-                        <div class="text-xs text-teal-600 font-mono mt-1">${row.EMAIL || '-'}</div>
-                    </td>
-                    <td class="px-6 py-4 text-sm text-gray-500">${row.LOCALIDAD || '-'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap"><span class="badge ${statusClass}">${icon} ${row.ESTADO || 'Pendiente'}</span></td>
-                    <td class="px-6 py-4 text-sm text-gray-600 leading-relaxed min-w-[300px]">${row.NOTAS || '-'}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function renderOfertas(data) {
-            const container = document.getElementById('view-ofertas');
-            container.innerHTML = '';
-            if (!data.length) { container.innerHTML = '<p class="col-span-full text-center py-20 text-gray-400">No se encontraron ofertas recientes.</p>'; return; }
-
-            data.forEach(o => {
-                const card = document.createElement('div');
-                card.className = "bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-teal-200 transition-all cursor-pointer border-l-4 border-l-teal-500 group";
-                card.onclick = () => openModal(o);
-                card.innerHTML = `
-                    <div class="flex justify-between items-start mb-3">
-                        <span class="text-[10px] font-bold uppercase tracking-widest text-teal-600 bg-teal-50 px-2 py-1 rounded">${o.fecha}</span>
-                        <svg class="w-5 h-5 text-gray-300 group-hover:text-teal-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                    </div>
-                    <h4 class="font-bold text-gray-800 text-lg mb-2 leading-tight group-hover:text-teal-700">${o.puesto}</h4>
-                    <div class="text-gray-500 text-sm flex items-center font-medium">
-                        <svg class="w-4 h-4 mr-1 text-teal-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"></path></svg>
-                        ${o.localidad}
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        function openModal(o) {
-            document.getElementById('modal-titulo').innerText = o.puesto;
-            document.getElementById('modal-contenido').innerHTML = `
-                <div class="flex flex-col items-center py-10">
-                    <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-10 w-10 mb-3"></div>
-                    <p class="text-gray-400 text-sm">Cargando detalles desde COF Alicante...</p>
-                </div>
-            `;
-            document.getElementById('modal-oferta').classList.replace('hidden', 'flex');
-            
-            // Simulación de carga de detalles para no saturar el script
-            setTimeout(() => {
-                document.getElementById('modal-contenido').innerHTML = `
-                    <div class="grid grid-cols-2 gap-4 mb-6">
-                        <div class="bg-teal-50 p-4 rounded-2xl border border-teal-100">
-                            <p class="text-[10px] font-bold text-teal-600 uppercase mb-1">Localidad</p>
-                            <p class="font-bold text-gray-800">${o.localidad}</p>
-                        </div>
-                        <div class="bg-teal-50 p-4 rounded-2xl border border-teal-100">
-                            <p class="text-[10px] font-bold text-teal-600 uppercase mb-1">Publicado el</p>
-                            <p class="font-bold text-gray-800">${o.fecha}</p>
-                        </div>
-                    </div>
-                    <div class="space-y-4">
-                        <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                            <p class="text-xs font-bold text-gray-400 uppercase mb-2">Acción requerida</p>
-                            <p class="text-gray-700 text-sm mb-4">Para ver los datos de contacto completos (Teléfono/Email) y la descripción detallada, debes acceder al portal oficial del Colegio:</p>
-                            <a href="${o.link}" target="_blank" class="inline-block w-full text-center bg-white border-2 border-teal-600 text-teal-600 font-bold py-3 rounded-xl hover:bg-teal-600 hover:text-white transition-all">Ver Oferta Completa</a>
-                        </div>
-                    </div>
-                `;
-            }, 600);
-        }
-
-        function closeModal() { document.getElementById('modal-oferta').classList.replace('flex', 'hidden'); }
-
-        function switchTab(tab) {
-            const btnP = document.getElementById('btn-practicas'), btnO = document.getElementById('btn-ofertas');
-            const viewP = document.getElementById('view-practicas'), viewO = document.getElementById('view-ofertas');
-            
-            if (tab === 'practicas') {
-                btnP.className = 'tab-active py-2 px-1'; btnO.className = 'tab-inactive py-2 px-1';
-                viewP.classList.remove('hidden'); viewO.classList.add('hidden');
-            } else {
-                btnO.className = 'tab-active py-2 px-1'; btnP.className = 'tab-inactive py-2 px-1';
-                viewO.classList.remove('hidden'); viewP.classList.add('hidden');
-                loadOfertas();
+            } catch (e) { 
+                tbody.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-red-500 font-bold">Error de conexión con el script de Google.</td></tr>'; 
             }
         }
 
-        init();
-    </script>
-</body>
-</html>';
-
-        async function init() {
-            loadPracticas();
-        }
-
-        async function loadPracticas() {
-            const tbody = document.getElementById('lista-farmacias');
-            tbody.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-gray-400">Cargando datos...</td></tr>';
-            try {
-                const response = await fetch(`${apiUrl}?action=getPractices&v=${Date.now()}`);
-                const data = await response.json();
-                renderPracticas(data);
-            } catch (e) { tbody.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-red-400 font-bold">Error al cargar prácticas. Revisa la URL de la API.</td></tr>'; }
-        }
-
         async function loadOfertas() {
             const container = document.getElementById('view-ofertas');
-            container.innerHTML = '<div class="col-span-full flex flex-col items-center py-20"><div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div><p class="text-gray-500 font-medium">Sincronizando con COF Alicante...</p></div>';
+            container.innerHTML = '<div class="col-span-full flex flex-col items-center py-20"><div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div><p class="text-gray-500 font-medium font-sans">Sincronizando con COF Alicante...</p></div>';
             try {
                 const response = await fetch(`${apiUrl}?action=getJobs&v=${Date.now()}`);
                 const data = await response.json();
                 renderOfertas(data);
-            } catch (e) { container.innerHTML = '<div class="col-span-full text-center py-20 text-red-500 font-bold">Error de conexión. Asegúrate de haber publicado el script como "Cualquiera".</div>'; }
+            } catch (e) { 
+                container.innerHTML = '<div class="col-span-full text-center py-20 text-red-500 font-bold">No se pudieron cargar las ofertas. Revisa la publicación del script.</div>'; 
+            }
         }
 
         function renderPracticas(data) {
             const tbody = document.getElementById('lista-farmacias');
             tbody.innerHTML = '';
-            
             data.filter(row => row.FARMACIA).forEach(row => {
                 const st = (row.ESTADO || '').toLowerCase();
-                let score = 1, statusClass = 'status-pendiente', rowClass = '', icon = '⏳';
-                if (st.includes('acept') || st.includes('si') || st.includes('entrevis')) { score = 3; statusClass = 'status-exito'; icon = '🚀'; }
-                else if (st.includes('respondido')) { score = 2; statusClass = 'status-respondido'; icon = '📩'; }
-                else if (st.includes('no') || st.includes('rechaz')) { score = 0; statusClass = 'status-rechazado'; rowClass = 'row-rechazado'; icon = '❌'; }
+                let statusClass = 'status-pendiente', rowClass = '', icon = '⏳';
+                if (st.includes('acept') || st.includes('si') || st.includes('entrevis')) { statusClass = 'status-exito'; icon = '🚀'; }
+                else if (st.includes('respondido')) { statusClass = 'status-respondido'; icon = '📩'; }
+                else if (st.includes('no') || st.includes('rechaz')) { statusClass = 'status-rechazado'; rowClass = 'row-rechazado'; icon = '❌'; }
 
                 const tr = document.createElement('tr');
                 tr.className = `hover:bg-gray-50 transition-colors ${rowClass}`;
@@ -320,7 +124,7 @@
         function renderOfertas(data) {
             const container = document.getElementById('view-ofertas');
             container.innerHTML = '';
-            if (!data.length) { container.innerHTML = '<p class="col-span-full text-center py-20 text-gray-400">No se encontraron ofertas recientes.</p>'; return; }
+            if (!data.length) { container.innerHTML = '<p class="col-span-full text-center py-20 text-gray-400">No se encontraron ofertas para este mes.</p>'; return; }
 
             data.forEach(o => {
                 const card = document.createElement('div');
@@ -329,7 +133,7 @@
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-3">
                         <span class="text-[10px] font-bold uppercase tracking-widest text-teal-600 bg-teal-50 px-2 py-1 rounded">${o.fecha}</span>
-                        <svg class="w-5 h-5 text-gray-300 group-hover:text-teal-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        <svg class="w-5 h-5 text-gray-300 group-hover:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                     </div>
                     <h4 class="font-bold text-gray-800 text-lg mb-2 leading-tight group-hover:text-teal-700">${o.puesto}</h4>
                     <div class="text-gray-500 text-sm flex items-center font-medium">
@@ -344,43 +148,36 @@
         function openModal(o) {
             document.getElementById('modal-titulo').innerText = o.puesto;
             document.getElementById('modal-contenido').innerHTML = `
-                <div class="flex flex-col items-center py-10">
-                    <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-10 w-10 mb-3"></div>
-                    <p class="text-gray-400 text-sm">Cargando detalles desde COF Alicante...</p>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-teal-50 p-4 rounded-xl border border-teal-100">
+                        <p class="text-[10px] font-bold text-teal-600 uppercase mb-1">Localidad</p>
+                        <p class="font-bold text-gray-800">${o.localidad}</p>
+                    </div>
+                    <div class="bg-teal-50 p-4 rounded-xl border border-teal-100">
+                        <p class="text-[10px] font-bold text-teal-600 uppercase mb-1">Publicado el</p>
+                        <p class="font-bold text-gray-800">${o.fecha}</p>
+                    </div>
+                </div>
+                <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100 space-y-4">
+                    <p class="text-sm text-gray-700 leading-relaxed">
+                        Para ver la descripción completa, requisitos y <strong>datos de contacto (Email/Teléfono)</strong>, debes abrir la ficha oficial:
+                    </p>
+                    <a href="${o.link}" target="_blank" class="block w-full text-center bg-teal-600 text-white font-bold py-3 rounded-xl hover:bg-teal-700 shadow-sm transition-all">Abrir Oferta en COF Alicante</a>
+                    <p class="text-[10px] text-gray-400 text-center uppercase tracking-tighter italic">Se abrirá en una pestaña nueva</p>
                 </div>
             `;
             document.getElementById('modal-oferta').classList.replace('hidden', 'flex');
-            
-            // Simulación de carga de detalles para no saturar el script
-            setTimeout(() => {
-                document.getElementById('modal-contenido').innerHTML = `
-                    <div class="grid grid-cols-2 gap-4 mb-6">
-                        <div class="bg-teal-50 p-4 rounded-2xl border border-teal-100">
-                            <p class="text-[10px] font-bold text-teal-600 uppercase mb-1">Localidad</p>
-                            <p class="font-bold text-gray-800">${o.localidad}</p>
-                        </div>
-                        <div class="bg-teal-50 p-4 rounded-2xl border border-teal-100">
-                            <p class="text-[10px] font-bold text-teal-600 uppercase mb-1">Publicado el</p>
-                            <p class="font-bold text-gray-800">${o.fecha}</p>
-                        </div>
-                    </div>
-                    <div class="space-y-4">
-                        <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                            <p class="text-xs font-bold text-gray-400 uppercase mb-2">Acción requerida</p>
-                            <p class="text-gray-700 text-sm mb-4">Para ver los datos de contacto completos (Teléfono/Email) y la descripción detallada, debes acceder al portal oficial del Colegio:</p>
-                            <a href="${o.link}" target="_blank" class="inline-block w-full text-center bg-white border-2 border-teal-600 text-teal-600 font-bold py-3 rounded-xl hover:bg-teal-600 hover:text-white transition-all">Ver Oferta Completa</a>
-                        </div>
-                    </div>
-                `;
-            }, 600);
+            document.body.style.overflow = 'hidden';
         }
 
-        function closeModal() { document.getElementById('modal-oferta').classList.replace('flex', 'hidden'); }
+        function closeModal() { 
+            document.getElementById('modal-oferta').classList.replace('flex', 'hidden'); 
+            document.body.style.overflow = 'auto';
+        }
 
         function switchTab(tab) {
             const btnP = document.getElementById('btn-practicas'), btnO = document.getElementById('btn-ofertas');
             const viewP = document.getElementById('view-practicas'), viewO = document.getElementById('view-ofertas');
-            
             if (tab === 'practicas') {
                 btnP.className = 'tab-active py-2 px-1'; btnO.className = 'tab-inactive py-2 px-1';
                 viewP.classList.remove('hidden'); viewO.classList.add('hidden');
