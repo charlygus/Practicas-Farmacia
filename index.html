@@ -24,7 +24,7 @@
         <header class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
             <div>
                 <h1 class="text-3xl font-extrabold text-teal-700 tracking-tight">Mis Prácticas</h1>
-                <p class="text-gray-400 mt-1 text-sm">Panel de control unificado</p>
+                <p class="text-gray-400 mt-1 text-sm">Gestión centralizada de vacantes</p>
             </div>
             <nav class="flex space-x-8 mt-6 md:mt-0">
                 <button onclick="switchTab('practicas')" id="btn-practicas" class="tab-active py-2 px-1 transition-all">Mis Prácticas</button>
@@ -52,10 +52,10 @@
     </div>
 
     <div id="modal-oferta" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col transition-all">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
+        <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
                 <h3 id="modal-titulo" class="text-xl font-bold text-teal-700 truncate pr-4">Ficha Técnica</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-3xl transition-colors">&times;</button>
             </div>
             <div id="modal-contenido" class="p-8 overflow-y-auto grow bg-white"></div>
             <div class="p-6 border-t border-gray-100 text-right bg-gray-50">
@@ -81,7 +81,7 @@
 
         async function loadOfertas() {
             const container = document.getElementById('view-ofertas');
-            container.innerHTML = '<div class="col-span-full flex flex-col items-center py-20"><div class="loader h-12 w-12 border-gray-200 rounded-full mb-4"></div><p class="text-gray-500 font-medium font-sans">Escaneando Bolsa de Trabajo...</p></div>';
+            container.innerHTML = '<div class="col-span-full flex flex-col items-center py-20"><div class="loader h-12 w-12 border-gray-200 rounded-full mb-4"></div><p class="text-gray-500 font-medium">Escaneando Bolsa de Trabajo...</p></div>';
             try {
                 const response = await fetch(`${apiUrl}?action=getJobs&v=${Date.now()}`);
                 const data = await response.json();
@@ -99,7 +99,7 @@
                     <td class="px-6 py-4"><div class="font-bold text-gray-800">${row.FARMACIA}</div><div class="text-[10px] text-teal-600 font-mono font-bold uppercase">${row.EMAIL || ''}</div></td>
                     <td class="px-6 py-4 text-gray-500">${row.LOCALIDAD || '-'}</td>
                     <td class="px-6 py-4"><span class="badge status-pendiente">${row.ESTADO || 'Pendiente'}</span></td>
-                    <td class="px-6 py-4 text-gray-600 leading-snug max-w-xs">${row.NOTAS || '-'}</td>
+                    <td class="px-6 py-4 text-gray-600 max-w-xs">${row.NOTAS || '-'}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -123,7 +123,7 @@
 
         async function openModal(o) {
             const content = document.getElementById('modal-contenido');
-            content.innerHTML = '<div class="flex flex-col items-center py-20"><div class="loader h-12 w-12 border-gray-200 rounded-full mb-4"></div><p class="text-gray-400 font-medium italic">Accediendo a la ficha técnica...</p></div>';
+            content.innerHTML = '<div class="flex flex-col items-center py-20"><div class="loader h-12 w-12 border-gray-200 rounded-full mb-4"></div><p class="text-gray-400 font-medium italic">Obteniendo datos reales...</p></div>';
             document.getElementById('modal-oferta').classList.replace('hidden', 'flex');
             document.getElementById('modal-titulo').innerText = o.puesto;
 
@@ -135,7 +135,7 @@
                     <div class="space-y-8">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100">
-                                <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Contacto</p>
+                                <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Persona de Contacto</p>
                                 <p class="text-gray-800 font-extrabold text-lg">${d.persona}</p>
                             </div>
                             <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100">
@@ -147,28 +147,32 @@
                                     <p class="text-[10px] font-bold text-teal-600 uppercase mb-1">Email</p>
                                     <p class="text-gray-800 font-black break-all text-xl">${d.email}</p>
                                 </div>
-                                <button onclick="navigator.clipboard.writeText('${d.email}'); alert('Email copiado');" class="bg-white px-4 py-2 rounded-xl text-xs font-bold text-teal-700 hover:bg-teal-600 hover:text-white transition-all shadow-sm border border-teal-200">Copiar</button>
+                                <button onclick="navigator.clipboard.writeText('${d.email}'); alert('Email copiado');" class="bg-white px-4 py-2 rounded-xl text-xs font-bold text-teal-700 shadow-sm border border-teal-200">Copiar</button>
                             </div>
                         </div>
 
                         <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Ubicación Farmacia</p>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Ubicación</p>
                             <p class="text-gray-800 font-bold mb-1">${d.direccion}</p>
-                            <p class="text-gray-600 text-sm italic">${d.localidad} (CP: ${d.cp})</p>
+                            <p class="text-gray-600 text-sm italic">${d.localidad} (${d.cp})</p>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-gray-100 pt-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-100 pt-6 text-sm">
                             <div>
                                 <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Jornada</p>
-                                <p class="text-gray-700 text-sm font-bold">${d.jornada}</p>
+                                <p class="text-gray-700 font-bold">${d.jornada}</p>
                             </div>
                             <div>
                                 <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Puesto</p>
-                                <p class="text-gray-700 text-sm font-bold">${d.puestoReal}</p>
+                                <p class="text-gray-700 font-bold">${d.puestoReal}</p>
                             </div>
                             <div>
                                 <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Idiomas</p>
-                                <p class="text-gray-700 text-sm font-bold">${d.idiomas}</p>
+                                <p class="text-gray-700 font-bold">${d.idiomas}</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Publicado hace</p>
+                                <p class="text-gray-700 font-bold">${d.tiempo}</p>
                             </div>
                         </div>
 
@@ -180,10 +184,10 @@
                         </div>
                     </div>
                 `;
-            } catch (e) { content.innerHTML = '<p class="text-center text-red-500 py-20 font-bold">Error al procesar la ficha técnica.</p>'; }
+            } catch (e) { content.innerHTML = '<p class="text-center text-red-500 py-20 font-bold">Error al leer los datos de la oferta.</p>'; }
         }
 
-        function closeModal() { document.getElementById('modal-oferta').classList.replace('flex', 'hidden'); }
+        function closeModal() { document.getElementById('modal-oferta').classList.replace('hidden', 'flex'); }
 
         function switchTab(tab) {
             const btnP = document.getElementById('btn-practicas'), btnO = document.getElementById('btn-ofertas');
