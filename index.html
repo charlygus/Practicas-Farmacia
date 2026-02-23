@@ -25,7 +25,7 @@
         <header class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
             <div>
                 <h1 class="text-3xl font-extrabold text-teal-700 tracking-tight">💊 Mis Prácticas</h1>
-                <p class="text-gray-400 mt-1 text-sm">Panel de control unificado</p>
+                <p class="text-gray-400 mt-1 text-sm">Panel de control actualizado</p>
             </div>
             <nav class="flex space-x-8 mt-6 md:mt-0">
                 <button onclick="switchTab('practicas')" id="btn-practicas" class="tab-active py-2 px-1 transition-all">Mis Prácticas</button>
@@ -53,14 +53,14 @@
     </div>
 
     <div id="modal-oferta" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
-                <h3 id="modal-titulo" class="text-xl font-bold text-teal-700 truncate mr-4"></h3>
+        <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 id="modal-titulo" class="text-xl font-bold text-teal-700 truncate"></h3>
                 <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
             </div>
-            <div id="modal-contenido" class="p-6 overflow-y-auto grow"></div>
+            <div id="modal-contenido" class="p-8 space-y-6"></div>
             <div class="p-6 border-t border-gray-100 text-right bg-gray-50">
-                <button onclick="closeModal()" class="bg-teal-600 text-white px-8 py-2 rounded-xl font-bold hover:bg-teal-700 transition-all">Cerrar Detalle</button>
+                <button onclick="closeModal()" class="bg-teal-600 text-white px-8 py-2 rounded-xl font-bold hover:bg-teal-700 transition-all">Cerrar</button>
             </div>
         </div>
     </div>
@@ -74,26 +74,22 @@
 
         async function loadPracticas() {
             const tbody = document.getElementById('lista-farmacias');
-            tbody.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-gray-400 italic">Cargando base de datos...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-gray-400">Cargando base de datos...</td></tr>';
             try {
                 const response = await fetch(`${apiUrl}?v=${Date.now()}`);
                 const data = await response.json();
                 renderPracticas(data);
-            } catch (e) { 
-                tbody.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-red-500 font-bold">Error de conexión con el script de Google.</td></tr>'; 
-            }
+            } catch (e) { tbody.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-red-500 font-bold">Error de conexión.</td></tr>'; }
         }
 
         async function loadOfertas() {
             const container = document.getElementById('view-ofertas');
-            container.innerHTML = '<div class="col-span-full flex flex-col items-center py-20"><div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div><p class="text-gray-500 font-medium font-sans">Sincronizando con COF Alicante...</p></div>';
+            container.innerHTML = '<div class="col-span-full flex flex-col items-center py-20"><div class="loader h-12 w-12 border-4 rounded-full mb-4"></div><p class="text-gray-500">Escaneando COF Alicante...</p></div>';
             try {
                 const response = await fetch(`${apiUrl}?action=getJobs&v=${Date.now()}`);
                 const data = await response.json();
                 renderOfertas(data);
-            } catch (e) { 
-                container.innerHTML = '<div class="col-span-full text-center py-20 text-red-500 font-bold">No se pudieron cargar las ofertas. Revisa la publicación del script.</div>'; 
-            }
+            } catch (e) { container.innerHTML = '<div class="col-span-full text-center py-20 text-red-500 font-bold">No se pudieron obtener las ofertas.</div>'; }
         }
 
         function renderPracticas(data) {
@@ -101,21 +97,18 @@
             tbody.innerHTML = '';
             data.filter(row => row.FARMACIA).forEach(row => {
                 const st = (row.ESTADO || '').toLowerCase();
-                let statusClass = 'status-pendiente', rowClass = '', icon = '⏳';
-                if (st.includes('acept') || st.includes('si') || st.includes('entrevis')) { statusClass = 'status-exito'; icon = '🚀'; }
+                let statusClass = 'status-pendiente', icon = '⏳';
+                if (st.includes('acept') || st.includes('si')) { statusClass = 'status-exito'; icon = '🚀'; }
                 else if (st.includes('respondido')) { statusClass = 'status-respondido'; icon = '📩'; }
-                else if (st.includes('no') || st.includes('rechaz')) { statusClass = 'status-rechazado'; rowClass = 'row-rechazado'; icon = '❌'; }
+                else if (st.includes('no') || st.includes('rechaz')) { statusClass = 'status-rechazado'; icon = '❌'; }
 
                 const tr = document.createElement('tr');
-                tr.className = `hover:bg-gray-50 transition-colors ${rowClass}`;
+                tr.className = `hover:bg-gray-50 transition-colors ${st.includes('no') ? 'row-rechazado' : ''}`;
                 tr.innerHTML = `
-                    <td class="px-6 py-4">
-                        <div class="font-bold text-gray-800">${row.FARMACIA}</div>
-                        <div class="text-xs text-teal-600 font-mono mt-1">${row.EMAIL || '-'}</div>
-                    </td>
+                    <td class="px-6 py-4"><div class="font-bold text-gray-800">${row.FARMACIA}</div><div class="text-xs text-teal-600 font-mono">${row.EMAIL || '-'}</div></td>
                     <td class="px-6 py-4 text-sm text-gray-500">${row.LOCALIDAD || '-'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap"><span class="badge ${statusClass}">${icon} ${row.ESTADO || 'Pendiente'}</span></td>
-                    <td class="px-6 py-4 text-sm text-gray-600 leading-relaxed min-w-[300px]">${row.NOTAS || '-'}</td>
+                    <td class="px-6 py-4"><span class="badge ${statusClass}">${icon} ${row.ESTADO || 'Pendiente'}</span></td>
+                    <td class="px-6 py-4 text-sm text-gray-600 min-w-[300px]">${row.NOTAS || '-'}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -124,17 +117,14 @@
         function renderOfertas(data) {
             const container = document.getElementById('view-ofertas');
             container.innerHTML = '';
-            if (!data.length) { container.innerHTML = '<p class="col-span-full text-center py-20 text-gray-400">No se encontraron ofertas para este mes.</p>'; return; }
+            if (!data.length) { container.innerHTML = '<p class="col-span-full text-center py-20 text-gray-400 font-medium">No hay ofertas publicadas recientemente.</p>'; return; }
 
             data.forEach(o => {
                 const card = document.createElement('div');
                 card.className = "bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-teal-200 transition-all cursor-pointer border-l-4 border-l-teal-500 group";
                 card.onclick = () => openModal(o);
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-3">
-                        <span class="text-[10px] font-bold uppercase tracking-widest text-teal-600 bg-teal-50 px-2 py-1 rounded">${o.fecha}</span>
-                        <svg class="w-5 h-5 text-gray-300 group-hover:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                    </div>
+                    <div class="text-[10px] font-bold uppercase tracking-widest text-teal-600 mb-2">${o.fecha}</div>
                     <h4 class="font-bold text-gray-800 text-lg mb-2 leading-tight group-hover:text-teal-700">${o.puesto}</h4>
                     <div class="text-gray-500 text-sm flex items-center font-medium">
                         <svg class="w-4 h-4 mr-1 text-teal-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"></path></svg>
@@ -146,34 +136,26 @@
         }
 
         function openModal(o) {
-            document.getElementById('modal-titulo').innerText = o.puesto;
+            document.getElementById('modal-titulo').innerText = "Detalle de la Oferta";
             document.getElementById('modal-contenido').innerHTML = `
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="bg-teal-50 p-4 rounded-xl border border-teal-100">
-                        <p class="text-[10px] font-bold text-teal-600 uppercase mb-1">Localidad</p>
-                        <p class="font-bold text-gray-800">${o.localidad}</p>
+                <div class="space-y-4">
+                    <h2 class="text-2xl font-bold text-gray-800 leading-tight">${o.puesto}</h2>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="bg-teal-50 text-teal-700 px-3 py-1 rounded-full text-xs font-bold border border-teal-100">${o.localidad}</span>
+                        <span class="bg-gray-50 text-gray-600 px-3 py-1 rounded-full text-xs font-bold border border-gray-100">${o.fecha}</span>
                     </div>
-                    <div class="bg-teal-50 p-4 rounded-xl border border-teal-100">
-                        <p class="text-[10px] font-bold text-teal-600 uppercase mb-1">Publicado el</p>
-                        <p class="font-bold text-gray-800">${o.fecha}</p>
+                    <div class="bg-yellow-50 p-5 rounded-2xl border border-yellow-100 mt-6">
+                        <p class="text-sm text-yellow-800 leading-relaxed mb-4">
+                            Los datos de contacto y la descripción completa son privados en la web del Colegio. Haz clic en el botón inferior para abrir la oferta original y ver el teléfono o email del anunciante.
+                        </p>
+                        <a href="${o.link}" target="_blank" class="block w-full text-center bg-teal-600 text-white font-bold py-3 rounded-xl hover:bg-teal-700 shadow-md transition-all">Ver Contacto y Descripción</a>
                     </div>
-                </div>
-                <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100 space-y-4">
-                    <p class="text-sm text-gray-700 leading-relaxed">
-                        Para ver la descripción completa, requisitos y <strong>datos de contacto (Email/Teléfono)</strong>, debes abrir la ficha oficial:
-                    </p>
-                    <a href="${o.link}" target="_blank" class="block w-full text-center bg-teal-600 text-white font-bold py-3 rounded-xl hover:bg-teal-700 shadow-sm transition-all">Abrir Oferta en COF Alicante</a>
-                    <p class="text-[10px] text-gray-400 text-center uppercase tracking-tighter italic">Se abrirá en una pestaña nueva</p>
                 </div>
             `;
             document.getElementById('modal-oferta').classList.replace('hidden', 'flex');
-            document.body.style.overflow = 'hidden';
         }
 
-        function closeModal() { 
-            document.getElementById('modal-oferta').classList.replace('flex', 'hidden'); 
-            document.body.style.overflow = 'auto';
-        }
+        function closeModal() { document.getElementById('modal-oferta').classList.replace('flex', 'hidden'); }
 
         function switchTab(tab) {
             const btnP = document.getElementById('btn-practicas'), btnO = document.getElementById('btn-ofertas');
@@ -187,7 +169,6 @@
                 loadOfertas();
             }
         }
-
         init();
     </script>
 </body>
