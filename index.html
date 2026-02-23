@@ -8,23 +8,32 @@
     <style>
         .badge { @apply px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full shadow-sm border; }
         .status-pendiente { @apply bg-yellow-50 text-yellow-700 border-yellow-200; }
-        .status-respondido { @apply bg-blue-50 text-blue-700 border-blue-200; }
         .status-exito { @apply bg-green-100 text-green-800 border-green-300 ring-2 ring-green-400 ring-opacity-50; }
-        .status-rechazado { @apply bg-red-50 text-red-600 border-red-100 line-through opacity-75; }
         body { background-color: #f8fafc; }
         .tab-active { @apply border-teal-600 text-teal-700 border-b-2 font-bold; }
         .tab-inactive { @apply text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent; }
-        .loader { border-top-color: #0d9488; animation: spinner 0.8s linear infinite; border-width: 3px; }
+        
+        /* Animaciones */
+        .loader-spin { border-top-color: #0d9488; animation: spinner 0.8s linear infinite; border-width: 4px; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .bounce-pill { animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
     </style>
 </head>
-<body class="text-gray-800 font-sans antialiased">
+<body class="text-gray-800 font-sans antialiased overflow-hidden">
+
+    <div id="global-loader" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="text-8xl bounce-pill mb-8">💊</div>
+        <div class="loader-spin h-12 w-12 border-gray-100 rounded-full mb-6"></div>
+        <h2 class="text-2xl font-black text-teal-800 tracking-tight">Preparando panel de control</h2>
+        <p id="loader-msg" class="text-gray-400 mt-2 text-sm font-medium">Sincronizando con fuentes de datos oficiales...</p>
+    </div>
 
     <div class="max-w-6xl mx-auto p-4 sm:p-8">
         <header class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
             <div>
                 <h1 class="text-3xl font-extrabold text-teal-700 tracking-tight">Mis Prácticas</h1>
-                <p class="text-gray-400 mt-1 text-sm">Gestión centralizada de vacantes</p>
+                <p class="text-gray-400 mt-1 text-sm font-medium">Panel Maestro de Farmacia</p>
             </div>
             <nav class="flex space-x-8 mt-6 md:mt-0">
                 <button onclick="switchTab('practicas')" id="btn-practicas" class="tab-active py-2 px-1 transition-all">Mis Prácticas</button>
@@ -53,40 +62,57 @@
 
     <div id="modal-oferta" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
         <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
                 <h3 id="modal-titulo" class="text-xl font-bold text-teal-700 truncate pr-4">Ficha Técnica</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-3xl transition-colors">&times;</button>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
             </div>
             <div id="modal-contenido" class="p-8 overflow-y-auto grow bg-white"></div>
             <div class="p-6 border-t border-gray-100 text-right bg-gray-50">
-                <button onclick="closeModal()" class="bg-teal-600 text-white px-10 py-2.5 rounded-2xl font-bold hover:bg-teal-700 transition-all">Cerrar</button>
+                <button onclick="closeModal()" class="bg-teal-600 text-white px-10 py-3 rounded-2xl font-bold hover:bg-teal-700 transition-all shadow-md">Cerrar</button>
             </div>
         </div>
     </div>
 
     <script>
         const apiUrl = 'https://script.google.com/macros/s/AKfycbz96ggVZhkjS_ZxeqG_wb4qci60OF47-pPLUw5K6J3BJj2aR5KPRDEemjNh9HksjQYJog/exec';
+        let globalJobData = [];
 
-        async function init() { loadPracticas(); }
-
-        async function loadPracticas() {
-            const tbody = document.getElementById('lista-farmacias');
-            tbody.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-gray-400 italic">Sincronizando...</td></tr>';
+        async function init() {
+            const msg = document.getElementById('loader-msg');
             try {
-                const response = await fetch(`${apiUrl}?v=${Date.now()}`);
-                const data = await response.json();
-                renderPracticas(data);
-            } catch (e) { console.error(e); }
-        }
+                // 1. Cargar Prácticas
+                msg.innerText = "Sincronizando Google Sheets...";
+                const practicasRes = await fetch(`${apiUrl}?v=${Date.now()}`);
+                const practicasData = await practicasRes.json();
+                renderPracticas(practicasData);
 
-        async function loadOfertas() {
-            const container = document.getElementById('view-ofertas');
-            container.innerHTML = '<div class="col-span-full flex flex-col items-center py-20"><div class="loader h-12 w-12 border-gray-200 rounded-full mb-4"></div><p class="text-gray-500 font-medium">Escaneando Bolsa de Trabajo...</p></div>';
-            try {
-                const response = await fetch(`${apiUrl}?action=getJobs&v=${Date.now()}`);
-                const data = await response.json();
-                renderOfertas(data);
-            } catch (e) { container.innerHTML = '<p class="col-span-full text-center py-20 text-red-500 font-bold">Error de conexión.</p>'; }
+                // 2. Cargar Listado de Ofertas
+                msg.innerText = "Localizando ofertas en COF Alicante...";
+                const jobsRes = await fetch(`${apiUrl}?action=getJobs&v=${Date.now()}`);
+                const jobList = await jobsRes.json();
+
+                // 3. Cargar todos los detalles en paralelo
+                msg.innerText = `Analizando detalles de ${jobList.length} ofertas...`;
+                const detailPromises = jobList.map(async (job) => {
+                    const res = await fetch(`${apiUrl}?action=getJobDetails&url=${encodeURIComponent(job.link)}`);
+                    const details = await res.json();
+                    return { ...job, ...details };
+                });
+
+                globalJobData = await Promise.all(detailPromises);
+                renderOfertas(globalJobData);
+
+                // FINALIZADO
+                document.getElementById('global-loader').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('global-loader').classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                }, 500);
+
+            } catch (e) {
+                msg.innerText = "Error crítico. Revisa la implementación del script.";
+                msg.classList.add('text-red-500');
+            }
         }
 
         function renderPracticas(data) {
@@ -98,7 +124,7 @@
                 tr.innerHTML = `
                     <td class="px-6 py-4"><div class="font-bold text-gray-800">${row.FARMACIA}</div><div class="text-[10px] text-teal-600 font-mono font-bold uppercase">${row.EMAIL || ''}</div></td>
                     <td class="px-6 py-4 text-gray-500">${row.LOCALIDAD || '-'}</td>
-                    <td class="px-6 py-4"><span class="badge status-pendiente">${row.ESTADO || 'Pendiente'}</span></td>
+                    <td class="px-6 py-4"><span class="badge status-pendiente">⏳ ${row.ESTADO || 'Pendiente'}</span></td>
                     <td class="px-6 py-4 text-gray-600 max-w-xs">${row.NOTAS || '-'}</td>
                 `;
                 tbody.appendChild(tr);
@@ -108,10 +134,10 @@
         function renderOfertas(data) {
             const container = document.getElementById('view-ofertas');
             container.innerHTML = '';
-            data.forEach(o => {
+            data.forEach((o, index) => {
                 const card = document.createElement('div');
                 card.className = "bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-teal-200 transition-all cursor-pointer border-l-8 border-l-teal-500 group";
-                card.onclick = () => openModal(o);
+                card.onclick = () => openModal(index);
                 card.innerHTML = `
                     <div class="text-[10px] font-bold text-teal-600 mb-2 uppercase tracking-widest">${o.fecha}</div>
                     <h4 class="font-bold text-gray-900 text-lg mb-3 leading-tight group-hover:text-teal-700">${o.puesto}</h4>
@@ -121,73 +147,61 @@
             });
         }
 
-        async function openModal(o) {
+        function openModal(index) {
+            const d = globalJobData[index];
+            document.getElementById('modal-titulo').innerText = "Información Consolidada";
             const content = document.getElementById('modal-contenido');
-            content.innerHTML = '<div class="flex flex-col items-center py-20"><div class="loader h-12 w-12 border-gray-200 rounded-full mb-4"></div><p class="text-gray-400 font-medium italic">Obteniendo datos reales...</p></div>';
-            document.getElementById('modal-oferta').classList.replace('hidden', 'flex');
-            document.getElementById('modal-titulo').innerText = o.puesto;
+            
+            content.innerHTML = `
+                <div class="space-y-8">
+                    <div class="bg-teal-50 p-7 rounded-3xl border border-teal-100">
+                        <p class="text-[11px] font-bold text-teal-600 uppercase mb-3 tracking-widest font-mono">Requisitos y Descripción</p>
+                        <p class="text-xl font-bold text-gray-800 leading-snug italic">
+                            "${d.requisitos}"
+                        </p>
+                    </div>
 
-            try {
-                const response = await fetch(`${apiUrl}?action=getJobDetails&url=${encodeURIComponent(o.link)}`);
-                const d = await response.json();
-                
-                content.innerHTML = `
-                    <div class="space-y-8">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100">
-                                <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Persona de Contacto</p>
-                                <p class="text-gray-800 font-extrabold text-lg">${d.persona}</p>
-                            </div>
-                            <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100">
-                                <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Teléfono</p>
-                                <p class="text-gray-800 font-extrabold text-lg">${d.telefono}</p>
-                            </div>
-                            <div class="bg-teal-50 p-5 rounded-2xl border border-teal-100 md:col-span-2 flex justify-between items-center">
-                                <div>
-                                    <p class="text-[10px] font-bold text-teal-600 uppercase mb-1">Email</p>
-                                    <p class="text-gray-800 font-black break-all text-xl">${d.email}</p>
-                                </div>
-                                <button onclick="navigator.clipboard.writeText('${d.email}'); alert('Email copiado');" class="bg-white px-4 py-2 rounded-xl text-xs font-bold text-teal-700 shadow-sm border border-teal-200">Copiar</button>
-                            </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                            <p class="text-[9px] font-bold text-gray-400 uppercase mb-1">Persona de Contacto</p>
+                            <p class="text-gray-600 font-medium text-sm">${d.persona}</p>
                         </div>
-
-                        <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Ubicación</p>
-                            <p class="text-gray-800 font-bold mb-1">${d.direccion}</p>
-                            <p class="text-gray-600 text-sm italic">${d.localidad} (${d.cp})</p>
+                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                            <p class="text-[9px] font-bold text-gray-400 uppercase mb-1">Teléfono</p>
+                            <p class="text-gray-600 font-medium text-sm">${d.telefono}</p>
                         </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-100 pt-6 text-sm">
+                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 md:col-span-2 flex justify-between items-center">
                             <div>
-                                <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Jornada</p>
-                                <p class="text-gray-700 font-bold">${d.jornada}</p>
+                                <p class="text-[9px] font-bold text-gray-400 uppercase mb-1">Email</p>
+                                <p class="text-gray-600 font-medium text-sm break-all">${d.email}</p>
                             </div>
-                            <div>
-                                <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Puesto</p>
-                                <p class="text-gray-700 font-bold">${d.puestoReal}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Idiomas</p>
-                                <p class="text-gray-700 font-bold">${d.idiomas}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Publicado hace</p>
-                                <p class="text-gray-700 font-bold">${d.tiempo}</p>
-                            </div>
+                            <button onclick="navigator.clipboard.writeText('${d.email}'); alert('Copiado');" class="text-teal-600 text-xs font-bold bg-white px-3 py-1 rounded-lg border border-teal-100">Copiar</button>
                         </div>
+                    </div>
 
-                        <div class="pt-2">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase mb-3 tracking-widest">Requisitos</p>
-                            <div class="text-gray-700 text-sm leading-relaxed bg-gray-50 p-6 rounded-2xl border border-gray-100 italic">
-                                "${d.requisitos}"
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+                        <div>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase mb-2 font-mono">Ubicación</p>
+                            <p class="text-gray-700 text-sm font-bold">${d.direccion}</p>
+                            <p class="text-gray-500 text-xs">${d.localidad} (${d.cp})</p>
+                        </div>
+                        <div class="space-y-3">
+                            <div>
+                                <p class="text-[10px] font-bold text-gray-400 uppercase font-mono">Jornada</p>
+                                <p class="text-gray-700 text-sm font-bold">${d.jornada}</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold text-gray-400 uppercase font-mono">Puesto</p>
+                                <p class="text-gray-700 text-sm font-bold">${d.puestoReal}</p>
                             </div>
                         </div>
                     </div>
-                `;
-            } catch (e) { content.innerHTML = '<p class="text-center text-red-500 py-20 font-bold">Error al leer los datos de la oferta.</p>'; }
+                </div>
+            `;
+            document.getElementById('modal-oferta').classList.replace('hidden', 'flex');
         }
 
-        function closeModal() { document.getElementById('modal-oferta').classList.replace('hidden', 'flex'); }
+        function closeModal() { document.getElementById('modal-oferta').classList.replace('flex', 'hidden'); }
 
         function switchTab(tab) {
             const btnP = document.getElementById('btn-practicas'), btnO = document.getElementById('btn-ofertas');
@@ -198,7 +212,6 @@
             } else {
                 btnO.className = 'tab-active py-2 px-1'; btnP.className = 'tab-inactive py-2 px-1';
                 viewO.classList.remove('hidden'); viewP.classList.add('hidden');
-                loadOfertas();
             }
         }
         init();
