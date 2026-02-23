@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seguimiento Prácticas Farmacia 💊</title>
+    <title>Seguimiento Prácticas Farmacia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .badge { @apply px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full shadow-sm border; }
@@ -13,6 +13,9 @@
         .status-rechazado { @apply bg-red-50 text-red-600 border-red-100 line-through opacity-75; }
         body { background-color: #f8fafc; }
         .row-rechazado { @apply bg-gray-50 opacity-60 grayscale; }
+        .tab-active { @apply border-teal-600 text-teal-700 border-b-2 font-bold; }
+        .tab-inactive { @apply text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent; }
+        .modal-open { overflow: hidden; }
     </style>
 </head>
 <body class="text-gray-800 font-sans antialiased">
@@ -21,14 +24,15 @@
         <header class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
             <div>
                 <h1 class="text-3xl font-extrabold text-teal-700 tracking-tight">💊 Mis Prácticas</h1>
-                <p class="text-gray-400 mt-1 text-sm">Panel de control en tiempo real</p>
+                <p class="text-gray-400 mt-1 text-sm">Panel de control unificado</p>
             </div>
-            <div id="stats" class="mt-4 md:mt-0 text-right font-bold text-teal-600">
-                Sincronizado con Google Sheets
-            </div>
+            <nav class="flex space-x-8 mt-6 md:mt-0">
+                <button onclick="switchTab('practicas')" id="btn-practicas" class="tab-active py-2 px-1 transition-all">Mis Prácticas</button>
+                <button onclick="switchTab('ofertas')" id="btn-ofertas" class="tab-inactive py-2 px-1 transition-all">Ofertas de Trabajo</button>
+            </nav>
         </header>
 
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+        <div id="view-practicas" class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-100">
                     <thead class="bg-gray-50">
@@ -44,54 +48,72 @@
                 </table>
             </div>
         </div>
+
+        <div id="view-ofertas" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            </div>
+    </div>
+
+    <div id="modal-oferta" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white">
+                <h3 id="modal-titulo" class="text-xl font-bold text-teal-700">Detalles de la Oferta</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div id="modal-contenido" class="p-6 space-y-4">
+                </div>
+            <div class="p-6 border-t border-gray-100 text-right bg-gray-50">
+                <button onclick="closeModal()" class="bg-teal-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-teal-700 transition-colors">Cerrar</button>
+            </div>
+        </div>
     </div>
 
     <script>
         const apiUrl = 'https://script.google.com/macros/s/AKfycbz96ggVZhkjS_ZxeqG_wb4qci60OF47-pPLUw5K6J3BJj2aR5KPRDEemjNh9HksjQYJog/exec';
 
         async function init() {
+            loadPracticas();
+        }
+
+        async function loadPracticas() {
             try {
-                const response = await fetch(apiUrl + '?nocache=' + new Date().getTime());
+                const response = await fetch(apiUrl + '?action=getPractices&nocache=' + new Date().getTime());
                 const data = await response.json();
-                renderTable(data);
-            } catch (error) {
-                console.error("Error:", error);
+                renderPracticas(data);
+            } catch (error) { console.error("Error practicas:", error); }
+        }
+
+        async function loadOfertas() {
+            const container = document.getElementById('view-ofertas');
+            container.innerHTML = '<div class="col-span-full text-center py-10 text-gray-500">Buscando ofertas recientes en COF Alicante...</div>';
+            try {
+                const response = await fetch(apiUrl + '?action=getJobs&nocache=' + new Date().getTime());
+                const data = await response.json();
+                renderOfertas(data);
+            } catch (error) { 
+                container.innerHTML = '<div class="col-span-full text-center py-10 text-red-500">Error al conectar con la bolsa de empleo.</div>';
             }
         }
 
-        function renderTable(data) {
+        function renderPracticas(data) {
             const tbody = document.getElementById('lista-farmacias');
             tbody.innerHTML = '';
-
-            // 1. Limpiar encabezados y 2. Asignar pesos para el ORDEN
+            
             const processedData = data.map((item, index) => {
                 const cleanItem = {};
                 Object.keys(item).forEach(key => cleanItem[key.trim()] = item[key]);
-                
-                // Definir prioridad (Score)
                 const st = (cleanItem.ESTADO || '').toLowerCase();
-                let score = 1; // Pendiente / Otros
-                if (st.includes('acept') || st.includes('si') || st.includes('entrevis')) score = 3; // Top
+                let score = 1;
+                if (st.includes('acept') || st.includes('si') || st.includes('entrevis')) score = 3;
                 else if (st.includes('respondido')) score = 2;
-                else if (st.includes('no') || st.includes('rechaz')) score = 0; // Bottom
-                
+                else if (st.includes('no') || st.includes('rechaz')) score = 0;
                 return { ...cleanItem, score, originalIndex: index };
             });
 
-            // 3. Ordenar: Por Score (3 a 0) y luego por posición original (distancia)
-            processedData.sort((a, b) => {
-                if (b.score !== a.score) return b.score - a.score;
-                return a.originalIndex - b.originalIndex;
-            });
+            processedData.sort((a, b) => (b.score !== a.score) ? b.score - a.score : a.originalIndex - b.originalIndex);
 
             processedData.forEach(row => {
                 if (!row.FARMACIA) return;
-
-                const est = (row.ESTADO || '').toLowerCase();
-                let statusClass = 'status-pendiente';
-                let rowClass = '';
-                let icon = '⏳';
-
+                let statusClass = 'status-pendiente', rowClass = '', icon = '⏳';
                 if (row.score === 3) { statusClass = 'status-exito'; icon = '🚀'; }
                 else if (row.score === 2) { statusClass = 'status-respondido'; icon = '📩'; }
                 else if (row.score === 0) { statusClass = 'status-rechazado'; rowClass = 'row-rechazado'; icon = '❌'; }
@@ -101,24 +123,102 @@
                 tr.innerHTML = `
                     <td class="px-6 py-4">
                         <div class="font-bold text-gray-800">${row.FARMACIA}</div>
-                        <div class="text-xs text-teal-600 font-mono mt-1">${row.EMAIL}</div>
+                        <div class="text-xs text-teal-600 font-mono mt-1">${row.EMAIL || ''}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
-                            ${row.LOCALIDAD}
-                        </span>
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">${row.LOCALIDAD || '-'}</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="badge ${statusClass}">
-                            ${icon} ${row.ESTADO || 'Pendiente'}
-                        </span>
+                        <span class="badge ${statusClass}">${icon} ${row.ESTADO || 'Pendiente'}</span>
                     </td>
-                    <td class="px-6 py-4 text-sm text-gray-600 leading-relaxed min-w-[300px]">
-                        ${row.NOTAS || '-'}
-                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600 leading-relaxed min-w-[300px]">${row.NOTAS || '-'}</td>
                 `;
                 tbody.appendChild(tr);
             });
+        }
+
+        function renderOfertas(data) {
+            const container = document.getElementById('view-ofertas');
+            container.innerHTML = '';
+            if (data.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center py-10 text-gray-500">No hay ofertas nuevas este mes.</div>';
+                return;
+            }
+
+            data.forEach(oferta => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer border-l-4 border-l-teal-500";
+                card.onclick = () => openModal(oferta);
+                card.innerHTML = `
+                    <div class="text-xs font-bold text-teal-600 mb-2">${oferta.fecha}</div>
+                    <div class="font-bold text-gray-800 text-lg mb-1 leading-tight">${oferta.puesto}</div>
+                    <div class="text-gray-500 text-sm flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        ${oferta.localidad}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function switchTab(tab) {
+            const viewP = document.getElementById('view-practicas');
+            const viewO = document.getElementById('view-ofertas');
+            const btnP = document.getElementById('btn-practicas');
+            const btnO = document.getElementById('btn-ofertas');
+
+            if (tab === 'practicas') {
+                viewP.classList.remove('hidden');
+                viewO.classList.add('hidden');
+                btnP.className = 'tab-active py-2 px-1 transition-all';
+                btnO.className = 'tab-inactive py-2 px-1 transition-all';
+            } else {
+                viewP.classList.add('hidden');
+                viewO.classList.remove('hidden');
+                btnP.className = 'tab-inactive py-2 px-1 transition-all';
+                btnO.className = 'tab-active py-2 px-1 transition-all';
+                loadOfertas();
+            }
+        }
+
+        function openModal(o) {
+            document.getElementById('modal-titulo').innerText = o.puesto;
+            document.getElementById('modal-contenido').innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-teal-50 p-4 rounded-xl">
+                        <p class="text-xs text-teal-600 font-bold uppercase">Ubicación</p>
+                        <p class="text-gray-800 font-medium">${o.localidad}</p>
+                    </div>
+                    <div class="bg-teal-50 p-4 rounded-xl">
+                        <p class="text-xs text-teal-600 font-bold uppercase">Publicado</p>
+                        <p class="text-gray-800 font-medium">${o.fecha}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl">
+                        <p class="text-xs text-gray-500 font-bold uppercase">Email</p>
+                        <p class="text-gray-800 font-medium">${o.email}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl">
+                        <p class="text-xs text-gray-500 font-bold uppercase">Teléfono</p>
+                        <p class="text-gray-800 font-medium">${o.telefono}</p>
+                    </div>
+                </div>
+                <div class="pt-4">
+                    <p class="text-xs text-gray-400 font-bold uppercase mb-2">Descripción y contacto</p>
+                    <div class="text-gray-700 text-sm leading-relaxed whitespace-pre-line">${o.descripcion}</div>
+                </div>
+                <div class="pt-4">
+                    <a href="${o.link}" target="_blank" class="text-teal-600 text-xs underline font-bold">Ver oferta original en COF Alicante</a>
+                </div>
+            `;
+            document.getElementById('modal-oferta').classList.remove('hidden');
+            document.getElementById('modal-oferta').classList.add('flex');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-oferta').classList.add('hidden');
+            document.getElementById('modal-oferta').classList.remove('flex');
+            document.body.classList.remove('modal-open');
         }
 
         init();
